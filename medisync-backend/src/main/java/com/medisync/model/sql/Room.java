@@ -1,3 +1,6 @@
+package com.medisync.model.sql;
+import jakarta.persistence.*;
+import lombok.Data;
 @Entity
 @Table(name = "rooms")
 @Data
