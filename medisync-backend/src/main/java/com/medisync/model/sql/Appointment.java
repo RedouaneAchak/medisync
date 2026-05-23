@@ -1,7 +1,9 @@
 package com.medisync.model.sql;
+
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "appointments")
 @Data
@@ -9,11 +11,12 @@ public class Appointment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    @OneToOne(mappedBy = "appointment", cascade = CascadeType.ALL)
+    private Invoice invoice;
     private java.time.LocalDateTime dateTime;
-    private Integer durationMinutes; //[cite: 1]
-    private String appointmentType; //[cite: 1]
-    
+    private Integer durationMinutes; // [cite: 1]
+    private String appointmentType; // [cite: 1]
+
     @Column(columnDefinition = "TEXT")
     private String description;
 

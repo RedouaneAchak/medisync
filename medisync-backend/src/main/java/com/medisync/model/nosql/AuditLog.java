@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 public class AuditLog {
     @Id
     private String id;
-    private Long userId; //[cite: 1]
-    private String action; //[cite: 1]
+    private Long userId; 
+    private String action; 
     private String targetEntity;
     private LocalDateTime timestamp;
     private String ipAddress;
