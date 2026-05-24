@@ -1,0 +1,131 @@
+.appointments-content {
+  --background: var(--medisync-bg);
+}
+
+.appointments-header {
+  background: var(--medisync-navy);
+  padding: 50px 16px 16px;
+
+  .app-name {
+    color: var(--medisync-gold);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+  }
+
+  .header-title {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+}
+
+.tabs-row {
+  display: flex;
+  background: white;
+  border-bottom: 0.5px solid var(--medisync-border);
+
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    font-size: 13px;
+    color: var(--medisync-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+
+    &.active {
+      color: var(--medisync-blue);
+      border-bottom: 2px solid var(--medisync-blue);
+      font-weight: 600;
+    }
+  }
+}
+
+.scroll-content {
+  padding: 12px 14px;
+}
+
+.rdv-card {
+  background: white;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 0.5px solid var(--medisync-border);
+
+  &.past {
+    opacity: 0.85;
+  }
+
+  .rdv-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+
+    .rdv-info {
+      flex: 1;
+      .rdv-doctor { font-size: 14px; font-weight: 600; color: var(--medisync-text); }
+      .rdv-specialty { font-size: 11px; color: var(--medisync-muted); margin-top: 2px; }
+    }
+  }
+
+  .rdv-details {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--medisync-muted);
+    margin-bottom: 12px;
+  }
+
+  .rdv-actions {
+    display: flex;
+    gap: 8px;
+
+    button {
+      flex: 1;
+      padding: 8px 0;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-cancel {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .btn-reschedule {
+      background: #dbeafe;
+      color: #1565C0;
+    }
+  }
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.pill-green { background: #dcfce7; color: #166534; }
+.pill-yellow { background: #fef3c7; color: #92400e; }
+.pill-red { background: #fee2e2; color: #991b1b; }
+.pill-gray { background: #f1f5f9; color: #64748b; }

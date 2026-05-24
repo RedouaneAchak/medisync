@@ -1,0 +1,97 @@
+<ion-content [fullscreen]="true" class="profile-content">
+
+  <!-- Header -->
+  <div class="profile-header">
+    <div class="app-name">MediSync</div>
+    <div class="header-title">Mon Profil</div>
+  </div>
+
+  <!-- Avatar + nom -->
+  <div class="profile-top">
+    <div class="avatar">HZ</div>
+    <div class="profile-name">Hamza Benkirane</div>
+    <div class="profile-email">hamza.benkirane@email.com</div>
+    <span class="pill pill-blue">Patient</span>
+  </div>
+
+  <div class="scroll-content">
+
+    <!-- Infos personnelles -->
+    <div class="section-label">Informations personnelles</div>
+    <div class="info-card">
+      <div class="info-row">
+        <span class="info-icon">📅</span>
+        <div class="info-content">
+          <div class="info-label">Date de naissance</div>
+          <div class="info-value">15 mars 1998</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <span class="info-icon">📞</span>
+        <div class="info-content">
+          <div class="info-label">Téléphone</div>
+          <div class="info-value">+212 6 12 34 56 78</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <span class="info-icon">📍</span>
+        <div class="info-content">
+          <div class="info-label">Ville</div>
+          <div class="info-value">Rabat, Maroc</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <span class="info-icon">🩸</span>
+        <div class="info-content">
+          <div class="info-label">Groupe sanguin</div>
+          <div class="info-value">A+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personnes rattachées -->
+    <div class="section-label">Personnes rattachées</div>
+    <div class="person-card" *ngFor="let p of persons">
+      <div class="avatar-sm" [style.background]="p.avatarBg" [style.color]="p.avatarColor">
+        {{ p.initials }}
+      </div>
+      <div class="person-info">
+        <div class="person-name">{{ p.name }}</div>
+        <div class="person-relation">{{ p.relation }}</div>
+      </div>
+      <span class="pill pill-gray">{{ p.age }}</span>
+    </div>
+    <button class="btn-add-person" (click)="addPerson()">+ Ajouter une personne</button>
+
+    <!-- Paramètres -->
+    <div class="section-label">Paramètres</div>
+    <div class="settings-card">
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-icon">🔔</span>
+          <span class="setting-label">Notifications push</span>
+        </div>
+        <div class="toggle" [class.on]="notifEnabled" (click)="notifEnabled = !notifEnabled">
+          <div class="toggle-circle"></div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-icon">👆</span>
+          <span class="setting-label">Connexion biométrique</span>
+        </div>
+        <div class="toggle" [class.on]="bioEnabled" (click)="bioEnabled = !bioEnabled">
+          <div class="toggle-circle"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Déconnexion -->
+    <button class="btn-logout" (click)="logout()">Se déconnecter</button>
+
+    <div style="height: 80px;"></div>
+  </div>
+
+</ion-content>
+
+<app-tab-bar currentPage="profile"></app-tab-bar>

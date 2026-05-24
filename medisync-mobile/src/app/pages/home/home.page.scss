@@ -1,0 +1,154 @@
+.home-content {
+  --background: var(--medisync-bg);
+}
+
+.home-header {
+  background: var(--medisync-navy);
+  padding: 50px 16px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .app-name {
+    color: var(--medisync-gold);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+  }
+
+  .greeting {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .header-right {
+    position: relative;
+    cursor: pointer;
+    .notif-icon { font-size: 22px; }
+    .notif-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #e24b4a;
+      color: white;
+      font-size: 9px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}
+
+.scroll-content {
+  padding: 12px 14px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--medisync-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 12px 0 8px;
+}
+
+.next-rdv-card {
+  background: var(--medisync-blue);
+  border-radius: 16px;
+  padding: 14px;
+  color: white;
+
+  .rdv-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .rdv-info {
+    flex: 1;
+    .rdv-doctor { font-size: 14px; font-weight: 600; }
+    .rdv-specialty { font-size: 11px; opacity: 0.8; }
+  }
+
+  .rdv-bottom {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    opacity: 0.9;
+  }
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 8px;
+
+  .qa-item {
+    background: white;
+    border-radius: 14px;
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--medisync-text);
+    border: 0.5px solid var(--medisync-border);
+    cursor: pointer;
+
+    .qa-icon { font-size: 24px; }
+  }
+}
+
+.doctor-card {
+  background: white;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  border: 0.5px solid var(--medisync-border);
+  cursor: pointer;
+
+  .doctor-info {
+    flex: 1;
+    .doctor-name { font-size: 13px; font-weight: 500; color: var(--medisync-text); }
+    .doctor-sub { font-size: 11px; color: var(--medisync-muted); margin-top: 2px; }
+  }
+
+  .chevron { color: #8ea5cc; font-size: 20px; }
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.av-blue { background: #dbeafe; color: #1565C0; }
+.av-gold { background: #fef3c7; color: #92400e; }
+.av-green { background: #dcfce7; color: #166534; }
+
+.pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 500;
+}
+.pill-green { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); }
