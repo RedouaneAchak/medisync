@@ -42,5 +42,6 @@ These models handle flexible, unstructured, or high-volume data.
 | **`NotificationLog`**| Tracks 24h/1h reminders to prevent spamming patients. | Time-series event tracking. |
 
 ### 3. Enumerations (Global Types)
+
 * **`Role`**: `PATIENT`, `DOCTOR`, `SECRETARY`, `ADMIN` (Used for JWT Access Control).
 * **`PatientCategory`**: `ADULT`, `MINOR`, `DEPENDENT`, `CORPORATE`.
