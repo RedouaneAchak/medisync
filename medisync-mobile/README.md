@@ -50,3 +50,20 @@ npx cap open android
 | Profil | Informations personnelles et paramètres |
 
 ## Structure du projet
+src/
+├── app/
+│   ├── pages/
+│   │   ├── login/
+│   │   ├── home/
+│   │   ├── search/
+│   │   ├── booking/
+│   │   ├── appointments/
+│   │   ├── dossier/
+│   │   ├── notifications/
+│   │   └── profile/
+│   └── shared/
+│       └── tab-bar/
+├── theme/
+└── assets/
+## Livrable
+L'APK est disponible dans : `medisync-mobile/app-debug.apk`
