@@ -1,0 +1,92 @@
+<ion-content [fullscreen]="true" class="home-content">
+
+  <!-- Header -->
+  <div class="home-header">
+    <div class="header-left">
+      <div class="app-name">MediSync</div>
+      <div class="greeting">Bonjour, Hamza 👋</div>
+    </div>
+    <div class="header-right" (click)="goToNotifications()">
+      <span class="notif-icon">🔔</span>
+      <span class="notif-badge">2</span>
+    </div>
+  </div>
+
+  <div class="scroll-content">
+
+    <!-- Prochain RDV -->
+    <div class="section-label">Prochain rendez-vous</div>
+    <div class="next-rdv-card">
+      <div class="rdv-top">
+        <div class="avatar av-blue">SB</div>
+        <div class="rdv-info">
+          <div class="rdv-doctor">Dr. Sara Benali</div>
+          <div class="rdv-specialty">Cardiologue</div>
+        </div>
+        <span class="pill pill-green">Confirmé</span>
+      </div>
+      <div class="rdv-bottom">
+        <span>📅 10 juin 2025</span>
+        <span>🕘 09:30</span>
+        <span>📍 Clinique Atlas</span>
+      </div>
+    </div>
+
+    <!-- Accès rapide -->
+    <div class="section-label">Accès rapide</div>
+    <div class="quick-actions">
+      <div class="qa-item" (click)="goToSearch()">
+        <span class="qa-icon">📆</span>
+        <span>Prendre RDV</span>
+      </div>
+      <div class="qa-item" (click)="goToDossier()">
+        <span class="qa-icon">📋</span>
+        <span>Mon dossier</span>
+      </div>
+      <div class="qa-item" (click)="goToAppointments()">
+        <span class="qa-icon">📄</span>
+        <span>Ordonnances</span>
+      </div>
+      <div class="qa-item" (click)="goToNotifications()">
+        <span class="qa-icon">🔔</span>
+        <span>Alertes</span>
+      </div>
+    </div>
+
+    <!-- Médecins récents -->
+    <div class="section-label">Médecins récents</div>
+
+    <div class="doctor-card" (click)="goToBooking()">
+      <div class="avatar av-blue">SB</div>
+      <div class="doctor-info">
+        <div class="doctor-name">Dr. Sara Benali</div>
+        <div class="doctor-sub">Cardiologue • ⭐ 4.8</div>
+      </div>
+      <span class="chevron">›</span>
+    </div>
+
+    <div class="doctor-card" (click)="goToBooking()">
+      <div class="avatar av-gold">KF</div>
+      <div class="doctor-info">
+        <div class="doctor-name">Dr. Karim Fassi</div>
+        <div class="doctor-sub">Généraliste • ⭐ 4.6</div>
+      </div>
+      <span class="chevron">›</span>
+    </div>
+
+    <div class="doctor-card" (click)="goToBooking()">
+      <div class="avatar av-green">NM</div>
+      <div class="doctor-info">
+        <div class="doctor-name">Dr. Nadia Moussaoui</div>
+        <div class="doctor-sub">Pédiatre • ⭐ 4.9</div>
+      </div>
+      <span class="chevron">›</span>
+    </div>
+
+    <div style="height: 80px;"></div>
+  </div>
+
+</ion-content>
+
+<!-- Bottom Navigation -->
+<app-tab-bar currentPage="home"></app-tab-bar>

@@ -1,0 +1,57 @@
+<ion-content [fullscreen]="true" class="login-content">
+
+  <!-- Header bleu foncé -->
+  <div class="login-header">
+    <div class="logo-circle">🏥</div>
+    <h1 class="app-title">MediSync</h1>
+    <p class="app-subtitle">Votre santé, simplifiée</p>
+  </div>
+
+  <!-- Formulaire -->
+  <div class="login-form">
+
+    <div class="form-group">
+      <label>Email</label>
+      <ion-input
+        type="email"
+        placeholder="votre@email.com"
+        [(ngModel)]="email"
+        fill="outline"
+        class="custom-input">
+      </ion-input>
+    </div>
+
+    <div class="form-group">
+      <label>Mot de passe</label>
+      <ion-input
+        type="password"
+        placeholder="••••••••"
+        [(ngModel)]="password"
+        fill="outline"
+        class="custom-input">
+      </ion-input>
+      <div class="forgot-password">
+        <a href="#">Mot de passe oublié ?</a>
+      </div>
+    </div>
+
+    <ion-button expand="block" class="btn-login" (click)="login()">
+      Se connecter
+    </ion-button>
+
+    <div class="divider">
+      <span>ou</span>
+    </div>
+
+    <ion-button expand="block" fill="outline" class="btn-biometric" (click)="loginBiometric()">
+      👆 Connexion biométrique
+    </ion-button>
+
+    <div class="register-link">
+      Pas encore de compte ?
+      <a (click)="goToRegister()">S'inscrire</a>
+    </div>
+
+  </div>
+
+</ion-content>

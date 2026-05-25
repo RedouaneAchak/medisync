@@ -1,0 +1,201 @@
+.dossier-content {
+  --background: var(--medisync-bg);
+}
+
+.dossier-header {
+  background: var(--medisync-navy);
+  padding: 50px 16px 16px;
+
+  .app-name {
+    color: var(--medisync-gold);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+  }
+
+  .header-title {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+}
+
+.patient-card {
+  background: white;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 0.5px solid var(--medisync-border);
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #dbeafe;
+    color: #1565C0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .patient-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--medisync-text);
+  }
+
+  .patient-meta {
+    font-size: 11px;
+    color: var(--medisync-muted);
+    margin-top: 2px;
+  }
+}
+
+.scroll-content {
+  padding: 12px 14px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--medisync-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 14px 0 8px;
+}
+
+.consult-card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 0.5px solid var(--medisync-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .consult-date {
+    font-size: 10px;
+    color: var(--medisync-muted);
+    margin-bottom: 2px;
+  }
+
+  .consult-doctor {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--medisync-text);
+  }
+
+  .consult-motif {
+    font-size: 11px;
+    color: var(--medisync-muted);
+    margin-top: 2px;
+  }
+}
+
+.ordo-card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 0.5px solid var(--medisync-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .ordo-icon { font-size: 24px; }
+
+  .ordo-info {
+    flex: 1;
+    .ordo-title { font-size: 13px; font-weight: 600; color: var(--medisync-text); }
+    .ordo-date { font-size: 11px; color: var(--medisync-muted); margin-top: 2px; }
+  }
+
+  .btn-download {
+    background: #dbeafe;
+    color: #1565C0;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+}
+
+.treatment-card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 0.5px solid var(--medisync-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .treatment-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--medisync-text);
+  }
+
+  .treatment-dose {
+    font-size: 11px;
+    color: var(--medisync-muted);
+    margin-top: 2px;
+  }
+}
+
+.upload-zone {
+  background: white;
+  border: 1.5px dashed var(--medisync-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--medisync-blue);
+  cursor: pointer;
+  margin-bottom: 8px;
+
+  .upload-hint {
+    font-size: 10px;
+    color: var(--medisync-muted);
+  }
+}
+
+.doc-card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 0.5px solid var(--medisync-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .doc-icon { font-size: 22px; }
+
+  .doc-info {
+    .doc-name { font-size: 13px; font-weight: 500; color: var(--medisync-text); }
+    .doc-date { font-size: 11px; color: var(--medisync-muted); margin-top: 2px; }
+  }
+}
+
+.pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.pill-blue { background: #dbeafe; color: #1565C0; }
+.pill-green { background: #dcfce7; color: #166534; }

@@ -1,0 +1,33 @@
+.bottom-nav {
+  background: #ffffff;
+  border-top: 0.5px solid #d0ddf5;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 4px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.bn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: #8ea5cc;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+
+  &.active {
+    color: #1565C0;
+  }
+
+  .bn-icon {
+    font-size: 20px;
+  }
+}
