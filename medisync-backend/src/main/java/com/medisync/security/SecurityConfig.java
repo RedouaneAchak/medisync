@@ -53,10 +53,10 @@ public class SecurityConfig {
             // 4. Map the Access Control Rules
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll() 
-                .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
-                .requestMatchers("/api/doctor/**").hasAnyAuthority("DOCTOR", "ADMIN")
-                .requestMatchers("/api/secretary/**").hasAnyAuthority("SECRETARY", "ADMIN")
-                .requestMatchers("/api/patient/**").hasAnyAuthority("PATIENT", "ADMIN")
+                .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+                .requestMatchers("/api/doctor/**").hasAnyAuthority("DOCTOR", "ADMIN", "ROLE_DOCTOR", "ROLE_ADMIN")
+                .requestMatchers("/api/secretary/**").hasAnyAuthority("SECRETARY", "ADMIN", "ROLE_SECRETARY", "ROLE_ADMIN")
+                .requestMatchers("/api/patient/**").hasAnyAuthority("PATIENT", "ADMIN", "ROLE_PATIENT", "ROLE_ADMIN")
                 .anyRequest().authenticated() 
             )
             
@@ -85,8 +85,10 @@ public class SecurityConfig {
             "http://localhost:4200", 
             "http://localhost:8100"  
         ));
+        configuration.setAllowedOriginPatterns(List.of("*")); // pour test postman
+
         
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
         
