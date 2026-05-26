@@ -1,0 +1,36 @@
+<section class="page-title">
+  <span class="eyebrow">Facturation</span>
+  <h1>Paiements et assurances</h1>
+  <p>Suivi des factures generees automatiquement apres chaque rendez-vous.</p>
+</section>
+
+<section class="stats-grid two">
+  <article class="stat-card">
+    <span>Montant ouvert</span>
+    <strong>{{ totalOpen }} MAD</strong>
+    <small>A relancer cette semaine</small>
+  </article>
+  <article class="stat-card">
+    <span>Factures payees</span>
+    <strong>{{ invoices.length - 2 }}/{{ invoices.length }}</strong>
+    <small>Carte, especes, assurance</small>
+  </article>
+</section>
+
+<section class="section-panel">
+  <div class="table-list">
+    @for (invoice of invoices; track invoice.id) {
+      <div class="list-row">
+        <div>
+          <strong>{{ invoice.id }}</strong>
+          <span>{{ invoice.patient }} · {{ invoice.appointment }}</span>
+        </div>
+        <span>{{ invoice.method }}</span>
+        <strong>{{ invoice.amount }} MAD</strong>
+        <span class="badge" [class]="invoice.paid ? 'tone-green' : 'tone-yellow'">
+          {{ invoice.paid ? 'Payee' : 'En attente' }}
+        </span>
+      </div>
+    }
+  </div>
+</section>

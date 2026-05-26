@@ -1,0 +1,47 @@
+<section class="page-title">
+  <span class="eyebrow">Dossier patient</span>
+  <h1>Dossier medical</h1>
+  <p>Consultations, observations, ordonnances electroniques et fichiers medicaux.</p>
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+    <div class="patient-banner">
+      <div class="avatar large">HB</div>
+      <div>
+        <h2>Hamza Benkirane</h2>
+        <p>Ne le 15/03/1998 · Groupe A+ · ADULT</p>
+      </div>
+    </div>
+    @for (consultation of consultations; track consultation.date) {
+      <div class="record-item">
+        <div>
+          <strong>{{ consultation.date }} · {{ consultation.doctor }}</strong>
+          <span>{{ consultation.motif }}</span>
+          <p>{{ consultation.notes }}</p>
+        </div>
+        <div class="prescription-list">
+          @for (prescription of consultation.prescriptions; track prescription) {
+            <span>{{ prescription }}</span>
+          }
+        </div>
+      </div>
+    }
+  </article>
+
+  <aside class="section-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Documents</span>
+        <h2>Fichiers</h2>
+      </div>
+    </div>
+    <button class="upload-box">Ajouter un document medical</button>
+    @for (document of documents; track document) {
+      <div class="doc-row">
+        <span class="file-icon">PDF</span>
+        <strong>{{ document }}</strong>
+      </div>
+    }
+  </aside>
+</section>

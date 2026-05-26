@@ -1,0 +1,31 @@
+<section class="page-title">
+  <span class="eyebrow">Administration</span>
+  <h1>Centre de controle</h1>
+  <p>Supervision des utilisateurs, roles, activite et indicateurs de la plateforme.</p>
+</section>
+
+<section class="stats-grid">
+  <article class="stat-card"><span>Medecins</span><strong>{{ doctors.length }}</strong><small>Comptes DOCTOR</small></article>
+  <article class="stat-card"><span>Patients</span><strong>{{ patients.length }}</strong><small>Actifs dans la demo</small></article>
+  <article class="stat-card"><span>Roles</span><strong>4</strong><small>PATIENT, DOCTOR, SECRETARY, ADMIN</small></article>
+  <article class="stat-card"><span>RDV</span><strong>{{ appointments.length }}</strong><small>Planning charge</small></article>
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+    <h2>Gestion des roles</h2>
+    <div class="table-list">
+      @for (role of ['PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN']; track role) {
+        <div class="list-row">
+          <strong>{{ role }}</strong>
+          <span>Permissions configurees via Spring Security</span>
+          <button>Configurer</button>
+        </div>
+      }
+    </div>
+  </article>
+  <aside class="section-panel">
+    <h2>Audit rapide</h2>
+    <p class="muted">Connexion JWT, limitations de debit, logs MongoDB et historique des notifications.</p>
+  </aside>
+</section>

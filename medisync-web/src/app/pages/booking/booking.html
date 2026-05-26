@@ -1,0 +1,61 @@
+<section class="page-title">
+  <span class="eyebrow">Reservation</span>
+  <h1>Demander un rendez-vous</h1>
+  <p>Selectionnez le medecin, le motif et le creneau. Le statut passera en attente avant confirmation.</p>
+</section>
+
+<section class="booking-layout">
+  <form class="section-panel form-panel">
+    <label>
+      Medecin
+      <select [(ngModel)]="selectedDoctor" name="doctor">
+        @for (doctor of doctors; track doctor.id) {
+          <option>{{ doctor.name }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Motif
+      <select [(ngModel)]="motif" name="motif">
+        <option>Premiere visite</option>
+        <option>Suivi</option>
+        <option>Controle</option>
+        <option>Urgence</option>
+      </select>
+    </label>
+    <label>
+      Date
+      <input [(ngModel)]="selectedDate" name="date" type="date" />
+    </label>
+    <label class="check-row">
+      <input [(ngModel)]="forSomeoneElse" name="thirdParty" type="checkbox" />
+      Rendez-vous pour un tiers ou mineur
+    </label>
+    <label>
+      Description
+      <textarea name="description" rows="4" placeholder="Symptomes, contexte ou remarques"></textarea>
+    </label>
+    <a routerLink="/appointments" class="btn primary full">Confirmer la demande</a>
+  </form>
+
+  <aside class="section-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Creneaux</span>
+        <h2>{{ selectedDate }}</h2>
+      </div>
+    </div>
+    <div class="slot-grid">
+      @for (slot of slots; track slot) {
+        <button class="slot-button" [class.active]="selectedTime === slot" (click)="selectedTime = slot">
+          {{ slot }}
+        </button>
+      }
+    </div>
+    <div class="summary-box">
+      <strong>Resume</strong>
+      <span>{{ selectedDoctor }}</span>
+      <span>{{ motif }} · {{ selectedDate }} a {{ selectedTime }}</span>
+    </div>
+  </aside>
+</section>

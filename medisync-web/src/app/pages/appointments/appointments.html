@@ -1,0 +1,32 @@
+<section class="page-title compact">
+  <span class="eyebrow">Planning medical</span>
+  <h1>Rendez-vous</h1>
+</section>
+
+<div class="tabs">
+  @for (tab of tabs; track tab) {
+    <button [class.active]="activeTab === tab" (click)="activeTab = tab">{{ tab }}</button>
+  }
+</div>
+
+<section class="section-panel">
+  <div class="table-list">
+    @for (appointment of appointments; track appointment.id) {
+      <div class="list-row appointment-row">
+        <div>
+          <strong>{{ appointment.date }} · {{ appointment.time }}</strong>
+          <span>{{ appointment.patient }} avec {{ appointment.doctor }}</span>
+        </div>
+        <div class="row-meta">
+          <span>Salle {{ appointment.room }}</span>
+          <span>{{ appointment.specialty }}</span>
+        </div>
+        <span class="badge" [class]="'tone-' + appointment.tone">{{ appointment.status }}</span>
+        <div class="inline-actions">
+          <button>Modifier</button>
+          <button>Annuler</button>
+        </div>
+      </div>
+    }
+  </div>
+</section>

@@ -1,0 +1,78 @@
+<section class="hero-grid">
+  <div class="hero-copy">
+    <span class="eyebrow">MediSync web clinic</span>
+    <h1>Coordonnez les rendez-vous, dossiers et paiements sans perdre le fil.</h1>
+    <p>
+      Une interface claire pour les patients, medecins, secretaires et administrateurs:
+      recherche de medecins, reservation, dossier medical, salles, facturation et alertes.
+    </p>
+    <div class="hero-actions">
+      <a routerLink="/booking" class="btn primary">Demander un rendez-vous</a>
+      <a routerLink="/doctors" class="btn secondary">Trouver un medecin</a>
+    </div>
+  </div>
+  <div class="care-panel">
+    <div class="panel-header">
+      <span>Prochain rendez-vous</span>
+      <strong>Confirme</strong>
+    </div>
+    <h2>{{ appointments[0].doctor }}</h2>
+    <p>{{ appointments[0].specialty }} avec {{ appointments[0].patient }}</p>
+    <div class="appointment-strip">
+      <span>{{ appointments[0].date }}</span>
+      <span>{{ appointments[0].time }}</span>
+      <span>Salle {{ appointments[0].room }}</span>
+    </div>
+  </div>
+</section>
+
+<section class="stats-grid">
+  @for (stat of stats; track stat.label) {
+    <article class="stat-card">
+      <span>{{ stat.label }}</span>
+      <strong>{{ stat.value }}</strong>
+      <small>{{ stat.helper }}</small>
+    </article>
+  }
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Planning</span>
+        <h2>Rendez-vous prioritaires</h2>
+      </div>
+      <a routerLink="/appointments">Voir tout</a>
+    </div>
+    <div class="table-list">
+      @for (appointment of appointments; track appointment.id) {
+        <div class="list-row">
+          <div>
+            <strong>{{ appointment.time }} - {{ appointment.patient }}</strong>
+            <span>{{ appointment.doctor }} · {{ appointment.type }}</span>
+          </div>
+          <span class="badge" [class]="'tone-' + appointment.tone">{{ appointment.status }}</span>
+        </div>
+      }
+    </div>
+  </article>
+
+  <article class="section-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Alertes</span>
+        <h2>Notifications</h2>
+      </div>
+    </div>
+    @for (item of notifications; track item.title) {
+      <div class="notice-item">
+        <span class="notice-dot" [class]="'tone-' + item.tone"></span>
+        <div>
+          <strong>{{ item.title }}</strong>
+          <p>{{ item.detail }}</p>
+        </div>
+      </div>
+    }
+  </article>
+</section>

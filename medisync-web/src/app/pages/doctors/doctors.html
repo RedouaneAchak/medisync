@@ -1,0 +1,40 @@
+<section class="page-title">
+  <span class="eyebrow">Trouver un specialiste</span>
+  <h1>Medecins disponibles</h1>
+  <p>Filtrez par specialite, ville ou clinique, puis choisissez un creneau de consultation.</p>
+</section>
+
+<section class="filter-bar">
+  <input [(ngModel)]="query" placeholder="Rechercher un medecin, une ville, une clinique" />
+  <select [(ngModel)]="specialty">
+    @for (item of specialties; track item) {
+      <option>{{ item }}</option>
+    }
+  </select>
+</section>
+
+<section class="doctor-grid">
+  @for (doctor of filteredDoctors; track doctor.id) {
+    <article class="doctor-card">
+      <div class="avatar">{{ doctor.initials }}</div>
+      <div class="doctor-body">
+        <div class="doctor-topline">
+          <h2>{{ doctor.name }}</h2>
+          <span class="badge" [class]="doctor.available ? 'tone-green' : 'tone-gray'">
+            {{ doctor.available ? 'Disponible' : 'Planning limite' }}
+          </span>
+        </div>
+        <p>{{ doctor.specialty }} · {{ doctor.clinic }} · {{ doctor.city }}</p>
+        <div class="meta-line">
+          <span>Note {{ doctor.rating }}/5</span>
+          <span>{{ doctor.languages }}</span>
+          <span>{{ doctor.price }} MAD</span>
+        </div>
+        <div class="card-actions">
+          <span>Prochain: {{ doctor.nextSlot }}</span>
+          <a routerLink="/booking" class="btn small primary">Reserver</a>
+        </div>
+      </div>
+    </article>
+  }
+</section>

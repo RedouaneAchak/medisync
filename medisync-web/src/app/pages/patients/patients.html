@@ -1,0 +1,25 @@
+<section class="page-title compact">
+  <span class="eyebrow">Secretariat</span>
+  <h1>Patients</h1>
+</section>
+
+<section class="filter-bar">
+  <input [(ngModel)]="query" placeholder="Rechercher un patient, categorie ou convention" />
+  <button class="btn primary">Nouveau patient</button>
+</section>
+
+<section class="section-panel">
+  <div class="table-list">
+    @for (patient of filteredPatients; track patient.name) {
+      <div class="list-row">
+        <div>
+          <strong>{{ patient.name }}</strong>
+          <span>{{ patient.phone }} · Derniere visite: {{ patient.lastVisit }}</span>
+        </div>
+        <span>{{ patient.company }}</span>
+        <span class="badge tone-blue">{{ patient.category }}</span>
+        <span>Groupe {{ patient.blood }}</span>
+      </div>
+    }
+  </div>
+</section>

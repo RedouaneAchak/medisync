@@ -1,0 +1,37 @@
+<section class="auth-layout">
+  <div>
+    <span class="eyebrow">Acces securise</span>
+    <h1>Bienvenue sur MediSync</h1>
+    <p>
+      Connectez-vous comme patient, medecin, secretaire ou administrateur pour
+      acceder aux donnees adaptees a votre role.
+    </p>
+    <div class="role-grid">
+      @for (role of ['Patient', 'Medecin', 'Secretaire', 'Admin']; track role) {
+        <button class="role-button" [class.active]="this.role === role" (click)="this.role = role">{{ role }}</button>
+      }
+    </div>
+  </div>
+
+  <form class="auth-card">
+    <label>
+      Email
+      <input [(ngModel)]="email" name="email" type="email" />
+    </label>
+    <label>
+      Mot de passe
+      <input name="password" type="password" value="password" />
+    </label>
+    <label>
+      Role
+      <select [(ngModel)]="role" name="role">
+        <option>Patient</option>
+        <option>Medecin</option>
+        <option>Secretaire</option>
+        <option>Admin</option>
+      </select>
+    </label>
+    <a routerLink="/" class="btn primary full">Se connecter</a>
+    <a routerLink="/profile" class="muted-link">Creer un compte patient</a>
+  </form>
+</section>

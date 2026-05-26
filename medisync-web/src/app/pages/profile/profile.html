@@ -1,0 +1,28 @@
+<section class="page-title">
+  <span class="eyebrow">Compte</span>
+  <h1>Profil et preferences</h1>
+  <p>Informations personnelles, securite et preferences de notification.</p>
+</section>
+
+<section class="booking-layout">
+  <form class="section-panel form-panel">
+    <label>Nom complet <input [(ngModel)]="name" name="name" /></label>
+    <label>Email <input [(ngModel)]="email" name="email" type="email" /></label>
+    <label>Telephone <input [(ngModel)]="phone" name="phone" /></label>
+    <label>Categorie
+      <select name="category">
+        <option>ADULT</option>
+        <option>MINOR</option>
+        <option>DEPENDENT</option>
+        <option>CORPORATE</option>
+      </select>
+    </label>
+    <button class="btn primary full">Enregistrer</button>
+  </form>
+  <aside class="section-panel">
+    <h2>Notifications</h2>
+    <label class="check-row"><input type="checkbox" checked /> Rappels 24h avant rendez-vous</label>
+    <label class="check-row"><input type="checkbox" checked /> Alertes de facturation</label>
+    <label class="check-row"><input type="checkbox" /> Resume hebdomadaire</label>
+  </aside>
+</section>
