@@ -9,5 +9,6 @@ import { RouterLink } from '@angular/router';
 })
 export class Login {
   email = 'patient@medisync.ma';
-  role = 'Patient';
+  fullName = '';
+  mode: 'signin' | 'signup' = 'signin';
 }

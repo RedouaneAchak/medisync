@@ -4,7 +4,12 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/home/home').then((m) => m.Home),
-    title: 'MediSync - Dashboard',
+    title: 'Accueil - MediSync',
+  },
+  {
+    path: 'announcements',
+    loadComponent: () => import('./pages/announcements/announcements').then((m) => m.Announcements),
+    title: 'Annonces - MediSync',
   },
   {
     path: 'login',

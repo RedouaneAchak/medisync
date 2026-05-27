@@ -1,19 +1,32 @@
 <section class="auth-layout">
-  <div>
-    <span class="eyebrow">Acces securise</span>
-    <h1>Bienvenue sur MediSync</h1>
-    <p>
-      Connectez-vous comme patient, medecin, secretaire ou administrateur pour
-      acceder aux donnees adaptees a votre role.
-    </p>
-    <div class="role-grid">
-      @for (role of ['Patient', 'Medecin', 'Secretaire', 'Admin']; track role) {
-        <button class="role-button" [class.active]="this.role === role" (click)="this.role = role">{{ role }}</button>
-      }
+  <div class="auth-media">
+    <img
+      src="https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&q=80&w=1200"
+      alt="Patient utilisant son espace medical en ligne"
+    />
+    <div>
+      <span class="eyebrow">Espace patient</span>
+      <h1>{{ mode === 'signin' ? 'Connexion a votre espace' : 'Creation de votre compte' }}</h1>
+      <p>
+        Accedez a vos rendez-vous, rappels, documents medicaux et factures.
+        Les comptes medecins et equipe clinique seront ajoutes par l'administration.
+      </p>
+    </div>
+    <div class="auth-switch">
+      <button [class.active]="mode === 'signin'" (click)="mode = 'signin'">Sign in</button>
+      <button [class.active]="mode === 'signup'" (click)="mode = 'signup'">Sign up</button>
     </div>
   </div>
 
   <form class="auth-card">
+    <span class="eyebrow">Espace patient</span>
+    <h2>{{ mode === 'signin' ? 'Sign in' : 'Sign up' }}</h2>
+    @if (mode === 'signup') {
+      <label>
+        Nom complet
+        <input [(ngModel)]="fullName" name="fullName" placeholder="Votre nom" />
+      </label>
+    }
     <label>
       Email
       <input [(ngModel)]="email" name="email" type="email" />
@@ -22,16 +35,24 @@
       Mot de passe
       <input name="password" type="password" value="password" />
     </label>
-    <label>
-      Role
-      <select [(ngModel)]="role" name="role">
-        <option>Patient</option>
-        <option>Medecin</option>
-        <option>Secretaire</option>
-        <option>Admin</option>
-      </select>
-    </label>
-    <a routerLink="/" class="btn primary full">Se connecter</a>
-    <a routerLink="/profile" class="muted-link">Creer un compte patient</a>
+    @if (mode === 'signup') {
+      <label>
+        Telephone
+        <input name="phone" placeholder="+212 ..." />
+      </label>
+    }
+    <a routerLink="/profile" class="btn primary full">
+      {{ mode === 'signin' ? 'Sign in' : 'Sign up' }}
+    </a>
+    <div class="auth-divider"><span>ou verification en deux etapes</span></div>
+    <button type="button" class="google-button">
+      <span class="google-g">
+        <b class="google-blue">G</b><b class="google-red">o</b><b class="google-yellow">o</b><b class="google-blue">g</b><b class="google-green">l</b><b class="google-red">e</b>
+      </span>
+      Continuer avec Google
+    </button>
+    <button type="button" class="muted-link as-button" (click)="mode = mode === 'signin' ? 'signup' : 'signin'">
+      {{ mode === 'signin' ? 'Creer un compte patient' : 'J ai deja un compte' }}
+    </button>
   </form>
 </section>

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +7,12 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {}
+export class App {
+  private readonly publicRoutes = ['/', '/login', '/announcements'];
+
+  constructor(private readonly router: Router) {}
+
+  get isPublicPage(): boolean {
+    return this.publicRoutes.includes(this.router.url.split('?')[0]);
+  }
+}
