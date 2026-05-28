@@ -5,10 +5,56 @@
 
 <section class="filter-bar">
   <input [(ngModel)]="query" placeholder="Rechercher un patient, categorie ou convention" />
-  <button class="btn primary">Nouveau patient</button>
+  <button class="btn primary" type="button" (click)="showCreateForm = !showCreateForm">Nouveau patient</button>
 </section>
 
+@if (showCreateForm) {
+  <section class="section-panel">
+    <form class="form-panel" (ngSubmit)="createPatient()">
+      <label>
+        Prenom
+        <input [(ngModel)]="newPatient.firstname" name="firstname" required />
+      </label>
+      <label>
+        Nom
+        <input [(ngModel)]="newPatient.lastname" name="lastname" required />
+      </label>
+      <label>
+        Email
+        <input [(ngModel)]="newPatient.email" name="email" type="email" required />
+      </label>
+      <label>
+        Telephone
+        <input [(ngModel)]="newPatient.phone" name="phone" placeholder="+212 ..." />
+      </label>
+      <label>
+        Numero SSN
+        <input [(ngModel)]="newPatient.ssn" name="ssn" />
+      </label>
+      <label>
+        Categorie
+        <select [(ngModel)]="newPatient.category" name="category">
+          @for (category of categories; track category) {
+            <option [ngValue]="category">{{ category }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Convention
+        <input [(ngModel)]="newPatient.companyName" name="companyName" placeholder="Individuel, entreprise..." />
+      </label>
+      <button class="btn primary" type="submit">Creer le patient</button>
+    </form>
+  </section>
+}
+
 <section class="section-panel">
+  @if (error) {
+    <p class="muted">{{ error }}</p>
+  }
+  @if (message) {
+    <p class="muted">{{ message }}</p>
+  }
   <div class="table-list">
     @for (patient of filteredPatients; track patient.name) {
       <div class="list-row">

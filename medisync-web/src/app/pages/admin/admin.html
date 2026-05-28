@@ -6,26 +6,83 @@
 
 <section class="stats-grid">
   <article class="stat-card"><span>Medecins</span><strong>{{ doctors.length }}</strong><small>Comptes DOCTOR</small></article>
-  <article class="stat-card"><span>Patients</span><strong>{{ patients.length }}</strong><small>Actifs dans la demo</small></article>
+  <article class="stat-card"><span>Patients</span><strong>{{ patients.length }}</strong><small>Comptes PATIENT</small></article>
   <article class="stat-card"><span>Roles</span><strong>4</strong><small>PATIENT, DOCTOR, SECRETARY, ADMIN</small></article>
-  <article class="stat-card"><span>RDV</span><strong>{{ appointments.length }}</strong><small>Planning charge</small></article>
+  <article class="stat-card"><span>RDV</span><strong>{{ appointments.length }}</strong><small>Planning backend</small></article>
 </section>
 
 <section class="content-grid">
   <article class="section-panel wide">
-    <h2>Gestion des roles</h2>
+    @if (error) {
+      <p class="muted">{{ error }}</p>
+    }
+    @if (message) {
+      <p class="muted">{{ message }}</p>
+    }
+    <h2>Utilisateurs et roles</h2>
+    <form class="form-panel" (ngSubmit)="createUser()">
+      <label>
+        Prenom
+        <input [(ngModel)]="newUser.firstname" name="firstname" required />
+      </label>
+      <label>
+        Nom
+        <input [(ngModel)]="newUser.lastname" name="lastname" required />
+      </label>
+      <label>
+        Email
+        <input [(ngModel)]="newUser.email" name="email" type="email" required />
+      </label>
+      <label>
+        Mot de passe temporaire
+        <input [(ngModel)]="newUser.password" name="password" type="text" required />
+      </label>
+      <label>
+        Role
+        <select [(ngModel)]="newUser.role" name="role">
+          @for (role of roleOptions; track role) {
+            <option [ngValue]="role">{{ role }}</option>
+          }
+        </select>
+      </label>
+      <button class="btn primary" type="submit">Creer le compte</button>
+    </form>
     <div class="table-list">
-      @for (role of ['PATIENT', 'DOCTOR', 'SECRETARY', 'ADMIN']; track role) {
+      @for (user of users; track user.id) {
         <div class="list-row">
-          <strong>{{ role }}</strong>
-          <span>Permissions configurees via Spring Security</span>
-          <button>Configurer</button>
+          <div>
+            <strong>{{ user.firstname }} {{ user.lastname }}</strong>
+            <span>{{ user.email }}</span>
+          </div>
+          <span class="badge tone-blue">{{ user.role }}</span>
+          <button type="button" (click)="deleteUser(user.id)">Supprimer</button>
         </div>
       }
     </div>
   </article>
   <aside class="section-panel">
-    <h2>Audit rapide</h2>
-    <p class="muted">Connexion JWT, limitations de debit, logs MongoDB et historique des notifications.</p>
+    <h2>Salles</h2>
+    <form class="form-panel" (ngSubmit)="createRoom()">
+      <label>
+        Numero
+        <input [(ngModel)]="newRoom.roomNumber" name="roomNumber" placeholder="A-204" required />
+      </label>
+      <label>
+        Equipement
+        <input [(ngModel)]="newRoom.equipmentType" name="equipmentType" placeholder="ECG, generaliste..." required />
+      </label>
+      <button class="btn primary" type="submit">Ajouter la salle</button>
+    </form>
+    <div class="table-list">
+      @for (room of rooms; track room.id) {
+        <div class="list-row">
+          <div>
+            <strong>{{ room.roomNumber }}</strong>
+            <span>{{ room.equipmentType }}</span>
+          </div>
+          <button type="button" (click)="deleteRoom(room.id)">Supprimer</button>
+        </div>
+      }
+    </div>
   </aside>
 </section>

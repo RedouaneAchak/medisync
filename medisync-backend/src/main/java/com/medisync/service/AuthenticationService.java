@@ -61,9 +61,7 @@ public class AuthenticationService {
                 )
         );
         User user = userRepository.findByEmail(request.getEmail()).orElseThrow();
-        return AuthenticationResponse.builder()
-                .token(jwtService.generateToken(user))
-                .build();
+        return buildAuthResponse(user);
     }
 
     // ── Inscription patient (self-register) ───────────────────────────────────
@@ -94,9 +92,7 @@ public class AuthenticationService {
         patient.setLastName(request.getLastname());
         patientRepository.save(patient);
 
-        return AuthenticationResponse.builder()
-                .token(jwtService.generateToken(user))
-                .build();
+        return buildAuthResponse(user);
     }
 
     // ── Login Google OAuth2 ───────────────────────────────────────────────────
@@ -142,12 +138,21 @@ public class AuthenticationService {
                 return newUser;
             });
 
-            return AuthenticationResponse.builder()
-                    .token(jwtService.generateToken(user))
-                    .build();
+            return buildAuthResponse(user);
 
         } catch (Exception e) {
             throw new RuntimeException("Authentification Google échouée : " + e.getMessage());
         }
+    }
+
+    private AuthenticationResponse buildAuthResponse(User user) {
+        return AuthenticationResponse.builder()
+                .token(jwtService.generateToken(user))
+                .userId(user.getId())
+                .firstname(user.getFirstname())
+                .lastname(user.getLastname())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
     }
 }

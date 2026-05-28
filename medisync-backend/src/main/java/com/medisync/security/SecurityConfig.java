@@ -54,7 +54,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll() 
                 .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
-                .requestMatchers("/api/doctor/**").hasAnyAuthority("DOCTOR", "ADMIN", "ROLE_DOCTOR", "ROLE_ADMIN")
+                .requestMatchers("/api/doctor/**").hasAnyAuthority("PATIENT", "DOCTOR", "SECRETARY", "ADMIN", "ROLE_PATIENT", "ROLE_DOCTOR", "ROLE_SECRETARY", "ROLE_ADMIN")
                 .requestMatchers("/api/secretary/**").hasAnyAuthority("SECRETARY", "ADMIN", "ROLE_SECRETARY", "ROLE_ADMIN")
                 .requestMatchers("/api/patient/**").hasAnyAuthority("PATIENT", "ADMIN", "ROLE_PATIENT", "ROLE_ADMIN")
                 .anyRequest().authenticated() 

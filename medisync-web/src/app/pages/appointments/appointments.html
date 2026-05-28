@@ -10,6 +10,12 @@
 </div>
 
 <section class="section-panel">
+  @if (error) {
+    <p class="muted">{{ error }}</p>
+  }
+  @if (message) {
+    <p class="muted">{{ message }}</p>
+  }
   <div class="table-list">
     @for (appointment of appointments; track appointment.id) {
       <div class="list-row appointment-row">
@@ -23,10 +29,40 @@
         </div>
         <span class="badge" [class]="'tone-' + appointment.tone">{{ appointment.status }}</span>
         <div class="inline-actions">
-          <button>Modifier</button>
-          <button>Annuler</button>
+          <button type="button" (click)="startEdit(appointment)">Modifier</button>
+          <button type="button" (click)="confirm(appointment.id)">Confirmer</button>
+          <button type="button" (click)="cancel(appointment.id)">Annuler</button>
         </div>
       </div>
+      @if (editingId === appointment.id) {
+        <form class="form-panel" (ngSubmit)="saveEdit()">
+          <label>
+            Date
+            <input [(ngModel)]="editForm.date" name="date" type="date" required />
+          </label>
+          <label>
+            Heure
+            <input [(ngModel)]="editForm.time" name="time" type="time" required />
+          </label>
+          <label>
+            Duree
+            <select [(ngModel)]="editForm.durationMinutes" name="durationMinutes">
+              <option [ngValue]="15">15 min</option>
+              <option [ngValue]="30">30 min</option>
+              <option [ngValue]="60">60 min</option>
+            </select>
+          </label>
+          <label>
+            Salle
+            <select [(ngModel)]="editForm.roomId" name="roomId">
+              @for (room of rooms; track room.id) {
+                <option [ngValue]="room.id">{{ room.roomNumber }} - {{ room.equipmentType }}</option>
+              }
+            </select>
+          </label>
+          <button class="btn primary" type="submit">Enregistrer</button>
+        </form>
+      }
     }
   </div>
 </section>

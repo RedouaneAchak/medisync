@@ -12,12 +12,18 @@
   </article>
   <article class="stat-card">
     <span>Factures payees</span>
-    <strong>{{ invoices.length - 2 }}/{{ invoices.length }}</strong>
+    <strong>{{ paidCount }}/{{ invoices.length }}</strong>
     <small>Carte, especes, assurance</small>
   </article>
 </section>
 
 <section class="section-panel">
+  @if (error) {
+    <p class="muted">{{ error }}</p>
+  }
+  @if (message) {
+    <p class="muted">{{ message }}</p>
+  }
   <div class="table-list">
     @for (invoice of invoices; track invoice.id) {
       <div class="list-row">
@@ -30,6 +36,9 @@
         <span class="badge" [class]="invoice.paid ? 'tone-green' : 'tone-yellow'">
           {{ invoice.paid ? 'Payee' : 'En attente' }}
         </span>
+        @if (!invoice.paid) {
+          <button type="button" (click)="markPaid(invoice)">Encaisser</button>
+        }
       </div>
     }
   </div>

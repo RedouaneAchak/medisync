@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   {
@@ -18,51 +19,65 @@ export const routes: Routes = [
   },
   {
     path: 'doctors',
+    canActivate: [authGuard],
     loadComponent: () => import('./pages/doctors/doctors').then((m) => m.Doctors),
     title: 'Medecins - MediSync',
   },
   {
     path: 'booking',
+    canActivate: [authGuard],
+    data: { roles: ['PATIENT', 'SECRETARY', 'ADMIN'] },
     loadComponent: () => import('./pages/booking/booking').then((m) => m.Booking),
     title: 'Reservation - MediSync',
   },
   {
     path: 'appointments',
+    canActivate: [authGuard],
     loadComponent: () => import('./pages/appointments/appointments').then((m) => m.Appointments),
     title: 'Rendez-vous - MediSync',
   },
   {
     path: 'medical-record',
+    canActivate: [authGuard],
+    data: { roles: ['PATIENT', 'DOCTOR', 'ADMIN'] },
     loadComponent: () => import('./pages/medical-record/medical-record').then((m) => m.MedicalRecord),
     title: 'Dossier medical - MediSync',
   },
   {
     path: 'patients',
+    canActivate: [authGuard],
+    data: { roles: ['SECRETARY', 'ADMIN'] },
     loadComponent: () => import('./pages/patients/patients').then((m) => m.Patients),
     title: 'Patients - MediSync',
   },
   {
     path: 'billing',
+    canActivate: [authGuard],
     loadComponent: () => import('./pages/billing/billing').then((m) => m.Billing),
     title: 'Facturation - MediSync',
   },
   {
     path: 'rooms',
+    canActivate: [authGuard],
     loadComponent: () => import('./pages/rooms/rooms').then((m) => m.Rooms),
     title: 'Salles - MediSync',
   },
   {
     path: 'notifications',
+    canActivate: [authGuard],
     loadComponent: () => import('./pages/notifications/notifications').then((m) => m.Notifications),
     title: 'Notifications - MediSync',
   },
   {
     path: 'profile',
+    canActivate: [authGuard],
     loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
     title: 'Profil - MediSync',
   },
   {
     path: 'admin',
+    canActivate: [authGuard],
+    data: { roles: ['ADMIN'] },
     loadComponent: () => import('./pages/admin/admin').then((m) => m.Admin),
     title: 'Administration - MediSync',
   },

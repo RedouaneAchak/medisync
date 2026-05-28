@@ -6,6 +6,35 @@
 
 <section class="content-grid">
   <article class="section-panel wide">
+    @if (error) {
+      <p class="muted">{{ error }}</p>
+    }
+    @if (message) {
+      <p class="muted">{{ message }}</p>
+    }
+    @if (canManageConsultations) {
+      <form class="form-panel" (ngSubmit)="saveConsultation()">
+        <label>
+          ID patient
+          <input [(ngModel)]="consultationForm.patientId" name="patientId" type="number" required />
+        </label>
+        <label>
+          ID medecin
+          <input [(ngModel)]="consultationForm.doctorId" name="doctorId" type="number" required />
+        </label>
+        <label>
+          Observation
+          <textarea [(ngModel)]="consultationForm.observation" name="observation" rows="4" required></textarea>
+        </label>
+        <label>
+          Prescriptions
+          <textarea [(ngModel)]="consultationForm.prescriptionsText" name="prescriptions" rows="4" placeholder="Une prescription par ligne"></textarea>
+        </label>
+        <button class="btn primary" type="submit">
+          {{ editingId ? 'Mettre a jour' : 'Ajouter la consultation' }}
+        </button>
+      </form>
+    }
     <div class="patient-banner">
       <div class="avatar large">HB</div>
       <div>
@@ -25,6 +54,9 @@
             <span>{{ prescription }}</span>
           }
         </div>
+        @if (canManageConsultations && !consultation.id.startsWith('demo-')) {
+          <button type="button" (click)="editConsultation(consultation)">Modifier</button>
+        }
       </div>
     }
   </article>

@@ -18,7 +18,7 @@
     </div>
   </div>
 
-  <form class="auth-card">
+  <form class="auth-card" (ngSubmit)="submit()">
     <span class="eyebrow">Espace patient</span>
     <h2>{{ mode === 'signin' ? 'Sign in' : 'Sign up' }}</h2>
     @if (mode === 'signup') {
@@ -33,7 +33,7 @@
     </label>
     <label>
       Mot de passe
-      <input name="password" type="password" value="password" />
+      <input [(ngModel)]="password" name="password" type="password" />
     </label>
     @if (mode === 'signup') {
       <label>
@@ -41,9 +41,12 @@
         <input name="phone" placeholder="+212 ..." />
       </label>
     }
-    <a routerLink="/profile" class="btn primary full">
-      {{ mode === 'signin' ? 'Sign in' : 'Sign up' }}
-    </a>
+    @if (error) {
+      <p class="muted">{{ error }}</p>
+    }
+    <button class="btn primary full" type="submit" [disabled]="loading">
+      {{ loading ? 'Connexion...' : mode === 'signin' ? 'Sign in' : 'Sign up' }}
+    </button>
     <div class="auth-divider"><span>ou verification en deux etapes</span></div>
     <button type="button" class="google-button">
       <span class="google-g">

@@ -86,6 +86,10 @@ public class SecretaryService {
         return appointmentService.getAll();
     }
 
+    public List<Patient> getAllPatients() {
+        return patientRepository.findAll();
+    }
+
     // ── Facturation ───────────────────────────────────────────────────────────
 
     public Invoice generateInvoice(Long appointmentId, Double amount, String paymentMethod) {

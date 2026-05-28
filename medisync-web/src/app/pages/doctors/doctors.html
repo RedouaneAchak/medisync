@@ -13,6 +13,12 @@
   </select>
 </section>
 
+@if (error) {
+  <section class="section-panel">
+    <p class="muted">{{ error }}</p>
+  </section>
+}
+
 <section class="doctor-grid">
   @for (doctor of filteredDoctors; track doctor.id) {
     <article class="doctor-card">

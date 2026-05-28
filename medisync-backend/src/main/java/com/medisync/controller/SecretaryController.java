@@ -58,6 +58,11 @@ public class SecretaryController {
         );
     }
 
+    @GetMapping("/patients")
+    public ResponseEntity<List<Patient>> getAllPatients() {
+        return ResponseEntity.ok(secretaryService.getAllPatients());
+    }
+
     // ── Gestion des rendez-vous ────────────────────────────────────────────────
 
     /**

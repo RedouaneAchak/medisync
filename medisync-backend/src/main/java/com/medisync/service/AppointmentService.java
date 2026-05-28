@@ -142,11 +142,15 @@ public class AppointmentService {
     // ── Notification ─────────────────────────────────────────────────────────
 
     private void saveNotification(Long appointmentId, Long patientId, String type) {
-        NotificationLog n = new NotificationLog();
-        n.setAppointmentId(appointmentId);
-        n.setPatientId(patientId);
-        n.setType(type);
-        n.setSentAt(LocalDateTime.now());
-        notificationLogRepository.save(n);
+        try {
+            NotificationLog n = new NotificationLog();
+            n.setAppointmentId(appointmentId);
+            n.setPatientId(patientId);
+            n.setType(type);
+            n.setSentAt(LocalDateTime.now());
+            notificationLogRepository.save(n);
+        } catch (Exception ex) {
+            System.err.println("Notification log skipped: " + ex.getMessage());
+        }
     }
 }

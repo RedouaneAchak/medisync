@@ -5,6 +5,11 @@
 </section>
 
 <section class="room-grid">
+  @if (error) {
+    <article class="room-card">
+      <p class="muted">{{ error }}</p>
+    </article>
+  }
   @for (room of rooms; track room.number) {
     <article class="room-card">
       <span class="room-number">{{ room.number }}</span>

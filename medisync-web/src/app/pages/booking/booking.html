@@ -5,12 +5,12 @@
 </section>
 
 <section class="booking-layout">
-  <form class="section-panel form-panel">
+  <form class="section-panel form-panel" (ngSubmit)="submit()">
     <label>
       Medecin
-      <select [(ngModel)]="selectedDoctor" name="doctor">
+      <select [(ngModel)]="selectedDoctorId" name="doctor" (change)="refreshSlots()">
         @for (doctor of doctors; track doctor.id) {
-          <option>{{ doctor.name }}</option>
+          <option [ngValue]="doctor.id">{{ doctor.name }}</option>
         }
       </select>
     </label>
@@ -25,7 +25,15 @@
     </label>
     <label>
       Date
-      <input [(ngModel)]="selectedDate" name="date" type="date" />
+      <input [(ngModel)]="selectedDate" name="date" type="date" (change)="refreshSlots()" />
+    </label>
+    <label>
+      Salle
+      <select [(ngModel)]="selectedRoomId" name="room">
+        @for (room of rooms; track room.id) {
+          <option [ngValue]="room.id">{{ room.roomNumber }} - {{ room.equipmentType }}</option>
+        }
+      </select>
     </label>
     <label class="check-row">
       <input [(ngModel)]="forSomeoneElse" name="thirdParty" type="checkbox" />
@@ -33,9 +41,14 @@
     </label>
     <label>
       Description
-      <textarea name="description" rows="4" placeholder="Symptomes, contexte ou remarques"></textarea>
+      <textarea [(ngModel)]="description" name="description" rows="4" placeholder="Symptomes, contexte ou remarques"></textarea>
     </label>
-    <a routerLink="/appointments" class="btn primary full">Confirmer la demande</a>
+    @if (message) {
+      <p class="muted">{{ message }}</p>
+    }
+    <button class="btn primary full" type="submit" [disabled]="loading">
+      {{ loading ? 'Envoi...' : 'Confirmer la demande' }}
+    </button>
   </form>
 
   <aside class="section-panel">
@@ -47,7 +60,7 @@
     </div>
     <div class="slot-grid">
       @for (slot of slots; track slot) {
-        <button class="slot-button" [class.active]="selectedTime === slot" (click)="selectedTime = slot">
+        <button type="button" class="slot-button" [class.active]="selectedTime === slot" (click)="selectedTime = slot">
           {{ slot }}
         </button>
       }
