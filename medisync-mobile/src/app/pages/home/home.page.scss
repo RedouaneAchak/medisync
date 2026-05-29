@@ -3,24 +3,37 @@
 }
 
 .home-header {
-  background: var(--medisync-navy);
+  background: #102542;
   padding: 50px 16px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  .app-name {
-    color: var(--medisync-gold);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+
+    .app-name {
+      color: #f0c040;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
   }
 
   .greeting {
     color: #ffffff;
     font-size: 16px;
     font-weight: 600;
-    margin-top: 2px;
+    margin-top: 4px;
   }
 
   .header-right {
@@ -31,7 +44,7 @@
       position: absolute;
       top: -4px;
       right: -4px;
-      background: #e24b4a;
+      background: #ea4335;
       color: white;
       font-size: 9px;
       width: 16px;
