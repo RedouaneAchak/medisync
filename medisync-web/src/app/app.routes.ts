@@ -53,12 +53,14 @@ export const routes: Routes = [
   {
     path: 'billing',
     canActivate: [authGuard],
+    data: { roles: ['PATIENT', 'SECRETARY', 'ADMIN'] },
     loadComponent: () => import('./pages/billing/billing').then((m) => m.Billing),
     title: 'Facturation - MediSync',
   },
   {
     path: 'rooms',
     canActivate: [authGuard],
+    data: { roles: ['SECRETARY', 'ADMIN'] },
     loadComponent: () => import('./pages/rooms/rooms').then((m) => m.Rooms),
     title: 'Salles - MediSync',
   },

@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core'; // <-- 1. Import ChangeDetectorRef
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
+  standalone: true,
   imports: [FormsModule],
   templateUrl: './login.html',
 })
@@ -12,6 +13,8 @@ export class Login {
   email = '';
   password = '';
   fullName = '';
+  phone = '';
+  
   mode: 'signin' | 'signup' = 'signin';
   error = '';
   loading = false;
@@ -20,32 +23,40 @@ export class Login {
     private readonly authService: AuthService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
+    private cdr: ChangeDetectorRef // <-- 2. Inject it into the constructor
   ) {}
 
   submit(): void {
     this.error = '';
     this.loading = true;
 
+    const firstName = this.fullName.trim().split(' ')[0] || 'Patient';
+    const parts = this.fullName.trim().split(' ').filter(Boolean);
+    const lastName = parts.length > 1 ? parts.slice(1).join(' ') : 'MediSync';
+
     const request =
       this.mode === 'signin'
         ? this.authService.login(this.email, this.password)
-        : this.authService.register(this.firstname, this.lastname, this.email, this.password);
+        : this.authService.register(firstName, lastName, this.email, this.password, this.phone);
 
     request.subscribe({
-      next: () => void this.router.navigateByUrl(this.route.snapshot.queryParamMap.get('returnUrl') ?? '/profile'),
-      error: () => {
-        this.error = 'Connexion impossible. Verifiez vos informations et que le backend est demarre.';
+      next: () => {
         this.loading = false;
+        this.cdr.detectChanges(); // <-- Wake up Angular
+        void this.router.navigateByUrl(this.route.snapshot.queryParamMap.get('returnUrl') ?? '/profile');
+      },
+      error: (err) => {
+        this.loading = false;
+        console.error('Login Failed:', err);
+
+        if (err.status === 401 || err.status === 403 || err.status === 400) {
+            this.error = 'Email ou mot de passe incorrect. Veuillez réessayer.';
+        } else {
+            this.error = 'Erreur serveur. Vérifiez que le backend est démarré.';
+        }
+        
+        this.cdr.detectChanges(); // <-- 3. FORCE the HTML to redraw and show the error!
       },
     });
-  }
-
-  private get firstname(): string {
-    return this.fullName.trim().split(' ')[0] || 'Patient';
-  }
-
-  private get lastname(): string {
-    const parts = this.fullName.trim().split(' ').filter(Boolean);
-    return parts.length > 1 ? parts.slice(1).join(' ') : 'MediSync';
   }
 }

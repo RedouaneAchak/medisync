@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { invoices } from '../../data/medisync-data';
 import { AuthService } from '../../services/auth.service';
 import { BackendInvoice, MedisyncApiService } from '../../services/medisync-api.service';
 
@@ -18,7 +17,7 @@ interface InvoiceRow {
   templateUrl: './billing.html',
 })
 export class Billing {
-  invoices: InvoiceRow[] = invoices.map((invoice, index) => ({ ...invoice, backendId: index + 1 }));
+  invoices: InvoiceRow[] = [];
   error = '';
   message = '';
 
@@ -44,6 +43,11 @@ export class Billing {
 
   get paidCount() {
     return this.invoices.filter((invoice) => invoice.paid).length;
+  }
+
+  get canCollectPayments(): boolean {
+    const role = this.authService.currentUser()?.role;
+    return role === 'SECRETARY' || role === 'ADMIN';
   }
 
   markPaid(invoice: InvoiceRow): void {

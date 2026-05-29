@@ -1,7 +1,15 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { patients } from '../../data/medisync-data';
 import { BackendPatient, MedisyncApiService } from '../../services/medisync-api.service';
+
+interface PatientRow {
+  name: string;
+  category: string;
+  phone: string;
+  company: string;
+  lastVisit: string;
+  blood: string;
+}
 
 @Component({
   selector: 'app-patients',
@@ -9,7 +17,7 @@ import { BackendPatient, MedisyncApiService } from '../../services/medisync-api.
   templateUrl: './patients.html',
 })
 export class Patients {
-  patients = patients;
+  patients: PatientRow[] = [];
   query = '';
   error = '';
   message = '';

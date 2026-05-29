@@ -14,7 +14,10 @@
     <p class="muted">{{ error }}</p>
   }
   @if (message) {
-    <p class="muted">{{ message }}</p>
+    <p class="muted" [class.tone-green]="messageType === 'success'" [class.tone-red]="messageType === 'error'">{{ message }}</p>
+  }
+  @if (loading) {
+    <p class="muted">Chargement des rendez-vous...</p>
   }
   <div class="table-list">
     @for (appointment of appointments; track appointment.id) {
@@ -29,9 +32,15 @@
         </div>
         <span class="badge" [class]="'tone-' + appointment.tone">{{ appointment.status }}</span>
         <div class="inline-actions">
-          <button type="button" (click)="startEdit(appointment)">Modifier</button>
-          <button type="button" (click)="confirm(appointment.id)">Confirmer</button>
-          <button type="button" (click)="cancel(appointment.id)">Annuler</button>
+          @if (canModifyAppointments) {
+            <button type="button" (click)="startEdit(appointment)" [disabled]="saving">Modifier</button>
+          }
+          @if (canConfirmAppointments) {
+            <button type="button" (click)="confirm(appointment.id)" [disabled]="saving">Confirmer</button>
+          }
+          @if (canModifyAppointments) {
+            <button type="button" (click)="cancel(appointment.id)" [disabled]="saving">Annuler</button>
+          }
         </div>
       </div>
       @if (editingId === appointment.id) {
@@ -60,8 +69,14 @@
               }
             </select>
           </label>
-          <button class="btn primary" type="submit">Enregistrer</button>
+          <button class="btn primary" type="submit" [disabled]="saving">
+            {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
         </form>
+      }
+    } @empty {
+      @if (!loading) {
+        <p class="muted">Aucun rendez-vous a afficher.</p>
       }
     }
   </div>

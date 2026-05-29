@@ -1,8 +1,21 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Doctor, doctors } from '../../data/medisync-data';
 import { BackendDoctor, MedisyncApiService } from '../../services/medisync-api.service';
+
+interface Doctor {
+  id: number;
+  name: string;
+  specialty: string;
+  city: string;
+  clinic: string;
+  languages: string;
+  rating: number;
+  price: number;
+  nextSlot: string;
+  available: boolean;
+  initials: string;
+}
 
 @Component({
   selector: 'app-doctors',
@@ -10,13 +23,14 @@ import { BackendDoctor, MedisyncApiService } from '../../services/medisync-api.s
   templateUrl: './doctors.html',
 })
 export class Doctors {
-  doctors = doctors;
+  doctors: Doctor[] = [];
   query = '';
   specialty = 'Tous';
   loading = false;
   error = '';
+  message = '';
 
-  specialties = ['Tous', ...new Set(doctors.map((doctor) => doctor.specialty))];
+  specialties = ['Tous'];
 
   constructor(private readonly api: MedisyncApiService) {
     this.loadDoctors();
@@ -34,18 +48,26 @@ export class Doctors {
     });
   }
 
-  private loadDoctors(): void {
+  loadDoctors(): void {
     this.loading = true;
-    this.api.getDoctors().subscribe({
+    this.error = '';
+    this.message = '';
+    const request = this.query.trim() || this.specialty !== 'Tous'
+      ? this.api.searchDoctors(this.specialty, this.query)
+      : this.api.getDoctors();
+
+    request.subscribe({
       next: (items) => {
-        if (items.length) {
-          this.doctors = items.map((doctor) => this.toDoctorCard(doctor));
-          this.specialties = ['Tous', ...new Set(this.doctors.map((doctor) => doctor.specialty))];
+        this.doctors = items.map((doctor) => this.toDoctorCard(doctor));
+        this.specialties = ['Tous', ...new Set([...this.specialties.filter((item) => item !== 'Tous'), ...this.doctors.map((doctor) => doctor.specialty)])];
+        if (!items.length) {
+          this.message = 'Aucun medecin ne correspond a cette recherche.';
         }
         this.loading = false;
       },
       error: () => {
-        this.error = 'Connectez-vous pour charger les medecins depuis le backend.';
+        this.doctors = [];
+        this.error = 'Recherche impossible. Verifiez que les medecins existent dans la table doctors et sont lies a un user DOCTOR.';
         this.loading = false;
       },
     });

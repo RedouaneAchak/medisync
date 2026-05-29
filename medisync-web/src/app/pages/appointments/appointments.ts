@@ -1,10 +1,22 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Appointment, appointments, StatusTone } from '../../data/medisync-data';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { BackendAppointment, BackendRoom, MedisyncApiService } from '../../services/medisync-api.service';
 
-interface AppointmentRow extends Appointment {
+type StatusTone = 'blue' | 'green' | 'yellow' | 'red' | 'gray';
+
+interface AppointmentRow {
+  id: number;
+  doctor: string;
+  patient: string;
+  specialty: string;
+  date: string;
+  time: string;
+  room: string;
+  type: string;
+  status: string;
+  tone: StatusTone;
   durationMinutes: number;
   roomId: number;
   isoDate: string;
@@ -16,17 +28,15 @@ interface AppointmentRow extends Appointment {
   templateUrl: './appointments.html',
 })
 export class Appointments {
-  appointments: AppointmentRow[] = appointments.map((appointment) => ({
-    ...appointment,
-    durationMinutes: 30,
-    roomId: 0,
-    isoDate: '',
-  }));
+  appointments: AppointmentRow[] = [];
   rooms: BackendRoom[] = [];
   activeTab = 'A venir';
   tabs = ['A venir', 'A confirmer', 'Historique'];
   error = '';
   message = '';
+  messageType: 'success' | 'error' | 'info' = 'info';
+  loading = false;
+  saving = false;
   editingId: number | null = null;
   editForm = {
     date: '',
@@ -59,59 +69,102 @@ export class Appointments {
 
   saveEdit(): void {
     if (!this.editingId || !this.editForm.roomId) {
-      this.message = 'Choisissez une salle avant de modifier le rendez-vous.';
+      this.setMessage('Choisissez une salle avant de modifier le rendez-vous.', 'error');
       return;
     }
 
+    this.saving = true;
+    this.message = '';
     this.api
       .updateAppointment(this.editingId, {
         dateTime: `${this.editForm.date}T${this.editForm.time}:00`,
         durationMinutes: this.editForm.durationMinutes,
         roomId: this.editForm.roomId,
       })
+      .pipe(finalize(() => (this.saving = false)))
       .subscribe({
         next: (updated) => {
           this.appointments = this.appointments.map((appointment) =>
             appointment.id === updated.id ? this.toAppointmentRow(updated) : appointment,
           );
           this.editingId = null;
-          this.message = 'Rendez-vous modifie.';
+          this.setMessage('Rendez-vous modifie avec succes.', 'success');
         },
         error: () => {
-          this.message = 'Modification impossible: creneau ou salle indisponible.';
+          this.setMessage('Modification impossible: creneau ou salle indisponible.', 'error');
         },
       });
   }
 
   cancel(id: number): void {
+    this.saving = true;
+    this.message = '';
     this.api.cancelAppointment(id).subscribe({
       next: (updated) => {
         this.appointments = this.appointments.map((appointment) =>
           appointment.id === id ? this.toAppointmentRow(updated) : appointment,
         );
+        this.saving = false;
+        this.setMessage('Rendez-vous annule avec succes.', 'success');
+      },
+      error: () => {
+        this.saving = false;
+        this.setMessage('Annulation impossible.', 'error');
       },
     });
   }
 
   confirm(id: number): void {
+    this.saving = true;
+    this.message = '';
     this.api.confirmAppointment(id).subscribe({
       next: (updated) => {
         this.appointments = this.appointments.map((appointment) =>
           appointment.id === id ? this.toAppointmentRow(updated) : appointment,
         );
+        this.saving = false;
+        this.setMessage('Rendez-vous confirme avec succes.', 'success');
+      },
+      error: () => {
+        this.saving = false;
+        this.setMessage('Confirmation impossible.', 'error');
       },
     });
   }
 
+  get canModifyAppointments(): boolean {
+    const role = this.authService.currentUser()?.role;
+    return role === 'SECRETARY' || role === 'ADMIN';
+  }
+
+  get canConfirmAppointments(): boolean {
+    const role = this.authService.currentUser()?.role;
+    return role === 'DOCTOR' || role === 'SECRETARY' || role === 'ADMIN';
+  }
+
   private loadAppointments(): void {
     const user = this.authService.currentUser();
-    const request = user?.role === 'PATIENT' ? this.api.getPatientAppointments(user.userId) : this.api.getAppointments();
+    this.loading = true;
+    this.error = '';
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).toISOString().slice(0, 19);
+    const to = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()).toISOString().slice(0, 19);
+    const request =
+      user?.role === 'PATIENT'
+        ? this.api.getPatientAppointments(user.userId)
+        : user?.role === 'DOCTOR'
+          ? this.api.getDoctorAppointments(user.userId, from, to)
+          : this.api.getAppointments();
 
-    request.subscribe({
+    request.pipe(finalize(() => (this.loading = false))).subscribe({
       next: (items) => {
         this.appointments = items.map((appointment) => this.toAppointmentRow(appointment));
+        if (!items.length) {
+          this.setMessage('Aucun rendez-vous trouve.', 'info');
+        }
       },
       error: () => {
+        this.appointments = [];
         this.error = 'Connectez-vous pour charger les rendez-vous depuis le backend.';
       },
     });
@@ -147,5 +200,10 @@ export class Appointments {
       return 'red';
     }
     return 'yellow';
+  }
+
+  private setMessage(message: string, type: 'success' | 'error' | 'info'): void {
+    this.message = message;
+    this.messageType = type;
   }
 }

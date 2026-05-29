@@ -54,7 +54,7 @@
             <span>{{ prescription }}</span>
           }
         </div>
-        @if (canManageConsultations && !consultation.id.startsWith('demo-')) {
+        @if (canManageConsultations) {
           <button type="button" (click)="editConsultation(consultation)">Modifier</button>
         }
       </div>
@@ -68,7 +68,39 @@
         <h2>Fichiers</h2>
       </div>
     </div>
-    <button class="upload-box">Ajouter un document medical</button>
+    <form class="form-panel" (ngSubmit)="addDocument()">
+      @if (canManageConsultations) {
+        <label>
+          Consultation
+          <select [(ngModel)]="documentForm.consultationId" name="consultationId">
+            @for (consultation of consultations; track consultation.id) {
+              <option [ngValue]="consultation.id">{{ consultation.doctor }} - {{ consultation.motif }}</option>
+            }
+          </select>
+        </label>
+      }
+      <label>
+        Nom du fichier
+        <input [(ngModel)]="documentForm.fileName" name="fileName" required />
+      </label>
+      <label>
+        Type
+        <select [(ngModel)]="documentForm.fileType" name="fileType">
+          <option>PDF</option>
+          <option>IMAGE</option>
+          <option>DICOM</option>
+          <option>LAB</option>
+        </select>
+      </label>
+      <label>
+        URL ou reference
+        <input [(ngModel)]="documentForm.fileUrl" name="fileUrl" />
+      </label>
+      @if (documentMessage) {
+        <p class="muted">{{ documentMessage }}</p>
+      }
+      <button class="btn primary full" type="submit">Ajouter un document medical</button>
+    </form>
     @for (document of documents; track document) {
       <div class="doc-row">
         <span class="file-icon">PDF</span>

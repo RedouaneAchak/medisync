@@ -15,7 +15,9 @@
         @if (canSee(['PATIENT', 'DOCTOR', 'ADMIN'])) {
           <a routerLink="/medical-record" routerLinkActive="active">Dossier</a>
         }
-        <a routerLink="/billing" routerLinkActive="active">Factures</a>
+        @if (canSee(['PATIENT', 'SECRETARY', 'ADMIN'])) {
+          <a routerLink="/billing" routerLinkActive="active">Factures</a>
+        }
       }
     </nav>
     <div class="top-actions">
@@ -44,7 +46,9 @@
       @if (canSee(['SECRETARY', 'ADMIN'])) {
         <a routerLink="/patients" routerLinkActive="active">Patients</a>
       }
-      <a routerLink="/rooms" routerLinkActive="active">Salles</a>
+      @if (canSee(['SECRETARY', 'ADMIN'])) {
+        <a routerLink="/rooms" routerLinkActive="active">Salles</a>
+      }
       <a routerLink="/profile" routerLinkActive="active">Profil</a>
       @if (canSee(['ADMIN'])) {
         <a routerLink="/admin" routerLinkActive="active">Admin</a>

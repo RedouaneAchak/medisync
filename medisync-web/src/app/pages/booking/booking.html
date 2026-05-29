@@ -8,12 +8,24 @@
   <form class="section-panel form-panel" (ngSubmit)="submit()">
     <label>
       Medecin
-      <select [(ngModel)]="selectedDoctorId" name="doctor" (change)="refreshSlots()">
+      <select [(ngModel)]="selectedDoctorId" name="doctor" (change)="refreshSlots()" [disabled]="loadingDoctors || !doctors.length">
         @for (doctor of doctors; track doctor.id) {
           <option [ngValue]="doctor.id">{{ doctor.name }}</option>
         }
       </select>
     </label>
+    @if (canChoosePatient) {
+      <label>
+        Patient
+        <select [(ngModel)]="selectedPatientId" name="patient">
+          @for (patient of patients; track patient.id) {
+            <option [ngValue]="patient.id">
+              {{ patient.firstName || patient.user?.firstname }} {{ patient.lastName || patient.user?.lastname }}
+            </option>
+          }
+        </select>
+      </label>
+    }
     <label>
       Motif
       <select [(ngModel)]="motif" name="motif">
@@ -29,7 +41,7 @@
     </label>
     <label>
       Salle
-      <select [(ngModel)]="selectedRoomId" name="room">
+      <select [(ngModel)]="selectedRoomId" name="room" [disabled]="loadingRooms || !rooms.length">
         @for (room of rooms; track room.id) {
           <option [ngValue]="room.id">{{ room.roomNumber }} - {{ room.equipmentType }}</option>
         }
@@ -44,9 +56,9 @@
       <textarea [(ngModel)]="description" name="description" rows="4" placeholder="Symptomes, contexte ou remarques"></textarea>
     </label>
     @if (message) {
-      <p class="muted">{{ message }}</p>
+      <p class="muted" [class.tone-green]="messageType === 'success'" [class.tone-red]="messageType === 'error'">{{ message }}</p>
     }
-    <button class="btn primary full" type="submit" [disabled]="loading">
+    <button class="btn primary full" type="submit" [disabled]="loading || !selectedDoctorId || !selectedRoomId || !selectedTime">
       {{ loading ? 'Envoi...' : 'Confirmer la demande' }}
     </button>
   </form>
@@ -63,6 +75,8 @@
         <button type="button" class="slot-button" [class.active]="selectedTime === slot" (click)="selectedTime = slot">
           {{ slot }}
         </button>
+      } @empty {
+        <p class="muted">Aucun creneau disponible.</p>
       }
     </div>
     <div class="summary-box">

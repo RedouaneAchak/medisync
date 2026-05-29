@@ -7,9 +7,11 @@ import com.medisync.dto.RegisterRequest;
 import com.medisync.service.AuthenticationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:4200") // Allow requests from Angular app
 public class AuthenticationController {
 
     private final AuthenticationService service;

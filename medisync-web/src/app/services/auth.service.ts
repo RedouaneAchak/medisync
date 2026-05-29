@@ -33,8 +33,8 @@ export class AuthService {
     );
   }
 
-  register(firstname: string, lastname: string, email: string, password: string) {
-    return this.http.post<AuthResponse>('/api/auth/register', { firstname, lastname, email, password }).pipe(
+  register(firstname: string, lastname: string, email: string, password: string, phone: string) {
+    return this.http.post<AuthResponse>('/api/auth/register', { firstname, lastname, email, password, phone }).pipe(
       tap((response) => this.storeSession(response)),
     );
   }
@@ -43,6 +43,17 @@ export class AuthService {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
     this.currentUser.set(null);
+  }
+
+  updateCurrentUser(partial: Partial<AuthUser>): void {
+    const current = this.currentUser();
+    if (!current) {
+      return;
+    }
+
+    const updated = { ...current, ...partial };
+    localStorage.setItem(this.userKey, JSON.stringify(updated));
+    this.currentUser.set(updated);
   }
 
   private storeSession(response: AuthResponse): void {

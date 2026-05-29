@@ -2,19 +2,22 @@
   <div class="auth-media">
     <img
       src="https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&q=80&w=1200"
-      alt="Patient utilisant son espace medical en ligne"
-    />
+      alt="Patient utilisant son espace medical en ligne" />
     <div>
       <span class="eyebrow">Espace patient</span>
-      <h1>{{ mode === 'signin' ? 'Connexion a votre espace' : 'Creation de votre compte' }}</h1>
+      <h1>{{ mode === 'signin' ? 'Connexion a votre espace' :
+        'Creation de votre compte' }}</h1>
       <p>
         Accedez a vos rendez-vous, rappels, documents medicaux et factures.
-        Les comptes medecins et equipe clinique seront ajoutes par l'administration.
+        Les comptes medecins et equipe clinique seront ajoutes par
+        l'administration.
       </p>
     </div>
     <div class="auth-switch">
-      <button [class.active]="mode === 'signin'" (click)="mode = 'signin'">Sign in</button>
-      <button [class.active]="mode === 'signup'" (click)="mode = 'signup'">Sign up</button>
+      <button [class.active]="mode === 'signin'" (click)="mode = 'signin'">Sign
+        in</button>
+      <button [class.active]="mode === 'signup'" (click)="mode = 'signup'">Sign
+        up</button>
     </div>
   </div>
 
@@ -22,10 +25,10 @@
     <span class="eyebrow">Espace patient</span>
     <h2>{{ mode === 'signin' ? 'Sign in' : 'Sign up' }}</h2>
     @if (mode === 'signup') {
-      <label>
-        Nom complet
-        <input [(ngModel)]="fullName" name="fullName" placeholder="Votre nom" />
-      </label>
+    <label>
+      Nom complet
+      <input [(ngModel)]="fullName" name="fullName" placeholder="Votre nom" />
+    </label>
     }
     <label>
       Email
@@ -36,13 +39,16 @@
       <input [(ngModel)]="password" name="password" type="password" />
     </label>
     @if (mode === 'signup') {
-      <label>
-        Telephone
-        <input name="phone" placeholder="+212 ..." />
-      </label>
+    <label>
+      Telephone
+      <input [(ngModel)]="phone" name="phone" placeholder="+212 ..." />
+    </label>
     }
     @if (error) {
-      <p class="muted">{{ error }}</p>
+    <p
+      style="color: #e74c3c; font-weight: 500; font-size: 0.9rem; margin-top: 10px;">
+      {{ error }}
+    </p>
     }
     <button class="btn primary full" type="submit" [disabled]="loading">
       {{ loading ? 'Connexion...' : mode === 'signin' ? 'Sign in' : 'Sign up' }}
@@ -50,11 +56,15 @@
     <div class="auth-divider"><span>ou verification en deux etapes</span></div>
     <button type="button" class="google-button"> Continuer avec
       <span class="google-g">
-        <b class="google-blue">G</b><b class="google-red">o</b><b class="google-yellow">o</b><b class="google-blue">g</b><b class="google-green">l</b><b class="google-red">e</b>
+        <b class="google-blue">G</b><b class="google-red">o</b><b
+          class="google-yellow">o</b><b class="google-blue">g</b><b
+          class="google-green">l</b><b class="google-red">e</b>
       </span>
     </button>
-    <button type="button" class="muted-link as-button" (click)="mode = mode === 'signin' ? 'signup' : 'signin'">
-      {{ mode === 'signin' ? 'Creer un compte patient' : 'J ai deja un compte' }}
+    <button type="button" class="muted-link as-button"
+      (click)="mode = mode === 'signin' ? 'signup' : 'signin'">
+      {{ mode === 'signin' ? 'Creer un compte patient' : 'J ai deja un compte'
+      }}
     </button>
   </form>
 </section>

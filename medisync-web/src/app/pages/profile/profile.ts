@@ -1,27 +1,37 @@
+import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs';
 
 import { AuthService, AuthUser } from '../../services/auth.service';
-import { MedisyncApiService, BackendPatient } from '../../services/medisync-api.service';
-
+import { BackendDoctor, BackendPatient, MedisyncApiService } from '../../services/medisync-api.service';
 
 @Component({
   selector: 'app-profile',
-  imports: [CommonModule, FormsModule], standalone: true,
+  imports: [CommonModule, FormsModule],
+  standalone: true,
   templateUrl: './profile.html',
 })
 export class Profile {
-  name = '';
+  firstName = '';
+  lastName = '';
   phone = '';
   email = '';
+  socialSecurityNumber = '';
+  category = 'ADULT';
+  companyName = '';
+  guardianId: number | null = null;
+  specialty = '';
+  bio = '';
+  spokenLanguages = '';
+  standardConsultationRate = 300;
 
+  loading = false;
   saving = false;
   error = '';
+  success = '';
 
   private user: AuthUser | null = null;
-  private patientId: number | null = null;
 
   constructor(
     private readonly authService: AuthService,
@@ -29,49 +39,147 @@ export class Profile {
   ) {
     this.user = this.authService.currentUser();
     if (this.user) {
-      this.name = `${this.user.firstname} ${this.user.lastname}`.trim();
+      this.firstName = this.user.firstname;
+      this.lastName = this.user.lastname;
       this.email = this.user.email;
-      this.patientId = this.user.userId;
-
-
+      this.loadProfile();
     }
   }
 
-  save(): void {
-    console.log('Saving profile with name:', this.name, 'email:', this.email, 'phone:', this.phone);
-    this.error = '';
-    // show feedback in UI
+  get isPatient(): boolean {
+    return this.user?.role === 'PATIENT';
+  }
 
-    if (!this.patientId) {
+  get isDoctor(): boolean {
+    return this.user?.role === 'DOCTOR';
+  }
+
+  save(): void {
+    this.error = '';
+    this.success = '';
+
+    if (!this.user) {
       this.error = 'Utilisateur non identifie.';
       return;
     }
-this.saving = true;
 
-    // Use the spread operator (...) to grab all existing data (email, password hash, role, etc.)
-    // Then, overwrite just the fields they updated in the UI.
-    const payload: BackendPatient = {
-      ...this.user, // Copies all hidden/required fields so they don't get erased
-      id: this.patientId,
-      firstname: this.name.split(' ')[0] || '',
-      lastname: this.name.split(' ').slice(1).join(' ') || '',
-      email: this.email, 
-      phoneNumber: this.phone,
-    } as BackendPatient;
+    if (this.user.role === 'DOCTOR') {
+      this.saveDoctorProfile(this.user);
+      return;
+    }
+
+    if (this.user.role === 'PATIENT') {
+      this.savePatientProfile(this.user);
+      return;
+    }
+
+    this.error = 'Seuls les patients et medecins peuvent modifier ce profil ici.';
+  }
+
+  private loadProfile(): void {
+    if (!this.user || (this.user.role !== 'PATIENT' && this.user.role !== 'DOCTOR')) {
+      return;
+    }
+
+    this.loading = true;
+    if (this.user.role === 'DOCTOR') {
+      this.api
+        .getDoctorProfile(this.user.userId)
+        .pipe(finalize(() => (this.loading = false)))
+        .subscribe({
+          next: (profile) => this.applyDoctorProfile(profile),
+          error: () => {
+            this.error = 'Chargement du profil impossible.';
+          },
+        });
+      return;
+    }
 
     this.api
-      .updatePatientProfile(this.patientId, payload)
+      .getPatientProfile(this.user.userId)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (profile) => this.applyPatientProfile(profile),
+        error: () => {
+          this.error = 'Chargement du profil impossible.';
+        },
+      });
+  }
+
+  private savePatientProfile(user: AuthUser): void {
+    this.saving = true;
+    this.api
+      .updatePatientProfile(user.userId, {
+        id: user.userId,
+        firstName: this.firstName,
+        lastName: this.lastName,
+        phoneNumber: this.phone,
+        socialSecurityNumber: this.socialSecurityNumber,
+        category: this.category,
+        companyName: this.companyName,
+        guardian: this.needsGuardian && this.guardianId ? { id: this.guardianId } : undefined,
+        user: {
+          id: user.userId,
+          firstname: this.firstName,
+          lastname: this.lastName,
+          email: this.email,
+          role: user.role,
+        },
+      })
       .pipe(finalize(() => (this.saving = false)))
       .subscribe({
-        next: () => {
-          this.error = 'Données enregistrées.';
+        next: (patient) => {
+          const firstname = patient.firstName ?? patient.user?.firstname ?? this.firstName;
+          const lastname = patient.lastName ?? patient.user?.lastname ?? this.lastName;
+          const email = patient.user?.email ?? this.email;
+          this.authService.updateCurrentUser({ firstname, lastname, email });
+          this.success = 'Profil patient enregistre.';
         },
-
         error: (err: unknown) => {
           this.error = (err as any)?.error?.message ?? 'Enregistrement impossible.';
         },
       });
+  }
 
+  private applyPatientProfile(profile: BackendPatient): void {
+    this.firstName = profile.firstName ?? profile.user?.firstname ?? this.firstName;
+    this.lastName = profile.lastName ?? profile.user?.lastname ?? this.lastName;
+    this.phone = profile.phoneNumber ?? '';
+    this.email = profile.user?.email ?? this.email;
+    this.socialSecurityNumber = profile.socialSecurityNumber ?? '';
+    this.category = profile.category ?? this.category;
+    this.companyName = profile.companyName ?? '';
+    this.guardianId = profile.guardian?.id ?? null;
+  }
+
+  private applyDoctorProfile(profile: BackendDoctor): void {
+    this.specialty = profile.specialty ?? '';
+    this.bio = profile.bio ?? '';
+    this.spokenLanguages = profile.spokenLanguages ?? '';
+    this.standardConsultationRate = profile.standardConsultationRate ?? 300;
+  }
+
+  private saveDoctorProfile(user: AuthUser): void {
+    this.saving = true;
+    this.api
+      .updateDoctorProfile(user.userId, {
+        specialty: this.specialty,
+        bio: this.bio,
+        spokenLanguages: this.spokenLanguages,
+        standardConsultationRate: this.standardConsultationRate,
+      })
+      .pipe(finalize(() => (this.saving = false)))
+      .subscribe({
+        next: () => {
+          this.success = 'Profil medecin enregistre.';
+        },
+        error: (err: unknown) => {
+          this.error = (err as any)?.error?.message ?? 'Enregistrement impossible.';
+        },
+      });
+  }
+
+  get needsGuardian(): boolean {
+    return this.category === 'MINOR' || this.category === 'DEPENDENT';
   }
 }
-

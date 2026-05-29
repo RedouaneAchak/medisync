@@ -26,8 +26,13 @@ public class DoctorService {
 
     // ── Recherche de médecins ─────────────────────────────────────────────────
 
-    public List<Doctor> searchBySpecialty(String specialty) {
-        return doctorRepository.findBySpecialtyContainingIgnoreCase(specialty);
+    public List<Doctor> search(String specialty, String query) {
+        String normalizedSpecialty = normalizeSearchTerm(specialty);
+        String normalizedQuery = normalizeSearchTerm(query);
+        if (normalizedSpecialty == null && normalizedQuery == null) {
+            return doctorRepository.findAll();
+        }
+        return doctorRepository.search(normalizedSpecialty, normalizedQuery);
     }
 
     public List<Doctor> getAll() {
@@ -37,6 +42,13 @@ public class DoctorService {
     public Doctor getById(Long id) {
         return doctorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Médecin introuvable : " + id));
+    }
+
+    private String normalizeSearchTerm(String value) {
+        if (value == null || value.isBlank() || value.equalsIgnoreCase("Tous")) {
+            return null;
+        }
+        return value.trim();
     }
 
     // ── Planning ──────────────────────────────────────────────────────────────

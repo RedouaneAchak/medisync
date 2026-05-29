@@ -29,6 +29,7 @@ export interface BackendPatient {
   socialSecurityNumber?: string;
   category?: string;
   companyName?: string;
+  guardian?: Pick<BackendPatient, 'id' | 'firstName' | 'lastName' | 'user'>;
 }
 
 export interface BackendRoom {
@@ -75,9 +76,31 @@ export class MedisyncApiService {
     return this.http.put<BackendPatient>(`/api/patient/${patientId}`, body);
   }
 
+  getPatientProfile(patientId: number) {
+    return this.http.get<BackendPatient>(`/api/patient/${patientId}`);
+  }
+
+  getDoctorProfile(doctorId: number) {
+    return this.http.get<BackendDoctor>(`/api/doctor/${doctorId}`);
+  }
+
+  updateDoctorProfile(doctorId: number, body: Partial<BackendDoctor>) {
+    return this.http.put<BackendDoctor>(`/api/doctor/${doctorId}`, body);
+  }
 
   getDoctors() {
     return this.http.get<BackendDoctor[]>('/api/doctor');
+  }
+
+  searchDoctors(specialty?: string, query?: string) {
+    let params = new HttpParams();
+    if (specialty && specialty !== 'Tous') {
+      params = params.set('specialty', specialty);
+    }
+    if (query?.trim()) {
+      params = params.set('q', query.trim());
+    }
+    return this.http.get<BackendDoctor[]>('/api/doctor/search', { params });
   }
 
   getAvailableSlots(doctorId: number, date: string, duration = 30) {
@@ -95,6 +118,11 @@ export class MedisyncApiService {
 
   getPatientAppointments(patientId: number) {
     return this.http.get<BackendAppointment[]>(`/api/appointments/patient/${patientId}`);
+  }
+
+  getDoctorAppointments(doctorId: number, from: string, to: string) {
+    const params = new HttpParams().set('from', from).set('to', to);
+    return this.http.get<BackendAppointment[]>(`/api/doctor/${doctorId}/appointments`, { params });
   }
 
   createAppointment(body: {
@@ -183,6 +211,10 @@ export class MedisyncApiService {
     return this.http.get<BackendConsultation[]>(`/api/consultations/patient/${patientId}`);
   }
 
+  getPatientMedicalHistory(patientId: number) {
+    return this.http.get<BackendConsultation[]>(`/api/patient/${patientId}/medical-history`);
+  }
+
   getConsultationsForDoctor(doctorId: number) {
     return this.http.get<BackendConsultation[]>(`/api/consultations/doctor/${doctorId}`);
   }
@@ -193,5 +225,14 @@ export class MedisyncApiService {
 
   updateConsultation(id: string, body: { observation: string; prescriptions: string[] }) {
     return this.http.put<BackendConsultation>(`/api/consultations/${id}`, body);
+  }
+
+  addConsultationFile(id: string, body: Record<string, unknown>) {
+    return this.http.post<BackendConsultation>(`/api/consultations/${id}/files`, body);
+  }
+
+  addPatientDocument(patientId: number, body: Record<string, unknown>, doctorId = 0) {
+    const params = new HttpParams().set('doctorId', doctorId);
+    return this.http.post<BackendConsultation>(`/api/patient/${patientId}/documents`, body, { params });
   }
 }

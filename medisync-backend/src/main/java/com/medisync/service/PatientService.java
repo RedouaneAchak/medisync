@@ -2,6 +2,7 @@ package com.medisync.service;
 
 import com.medisync.model.nosql.AuditLog;
 import com.medisync.model.nosql.Consultation;
+import com.medisync.model.enums.PatientCategory;
 import com.medisync.model.sql.Appointment;
 import com.medisync.model.sql.Patient;
 import com.medisync.model.sql.User;
@@ -36,10 +37,46 @@ public class PatientService {
     }
 
     @Transactional
-    // Inside PatientService.java
     public Patient updateProfile(Long id, Patient updatedPatient) {
-        // Just save the complete object exactly as Angular sent it
-        return patientRepository.save(updatedPatient);
+        Patient existing = getProfile(id);
+
+        if (updatedPatient.getFirstName() != null) {
+            existing.setFirstName(updatedPatient.getFirstName());
+            existing.getUser().setFirstname(updatedPatient.getFirstName());
+        }
+        if (updatedPatient.getLastName() != null) {
+            existing.setLastName(updatedPatient.getLastName());
+            existing.getUser().setLastname(updatedPatient.getLastName());
+        }
+        if (updatedPatient.getPhoneNumber() != null) {
+            existing.setPhoneNumber(updatedPatient.getPhoneNumber());
+        }
+        if (updatedPatient.getSocialSecurityNumber() != null) {
+            existing.setSocialSecurityNumber(updatedPatient.getSocialSecurityNumber());
+        }
+        if (updatedPatient.getCategory() != null) {
+            existing.setCategory(updatedPatient.getCategory());
+            if (updatedPatient.getCategory() == PatientCategory.ADULT
+                    || updatedPatient.getCategory() == PatientCategory.CORPORATE) {
+                existing.setGuardian(null);
+            }
+        }
+        if (updatedPatient.getCompanyName() != null) {
+            existing.setCompanyName(updatedPatient.getCompanyName());
+        }
+        if (updatedPatient.getGuardian() != null && updatedPatient.getGuardian().getId() != null) {
+            Patient guardian = patientRepository.findById(updatedPatient.getGuardian().getId())
+                    .orElseThrow(() -> new RuntimeException("Tuteur introuvable : " + updatedPatient.getGuardian().getId()));
+            if (guardian.getId().equals(existing.getId())) {
+                throw new RuntimeException("Un patient ne peut pas etre son propre tuteur.");
+            }
+            existing.setGuardian(guardian);
+        }
+        if (updatedPatient.getUser() != null && updatedPatient.getUser().getEmail() != null) {
+            existing.getUser().setEmail(updatedPatient.getUser().getEmail());
+        }
+
+        return patientRepository.save(existing);
     }
 
     // ── Rendez-vous ───────────────────────────────────────────────────────────

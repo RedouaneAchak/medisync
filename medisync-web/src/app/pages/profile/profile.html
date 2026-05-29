@@ -7,23 +7,48 @@
 <section class="booking-layout">
   <form class="section-panel form-panel" (ngSubmit)="save()">
 
-    <label>Nom complet <input [(ngModel)]="name" name="name" /></label>
-    <label>Email <input [(ngModel)]="email" name="email" type="email" /></label>
-    <label>Telephone <input [(ngModel)]="phone" name="phone" /></label>
-    <label>Categorie
-      <select name="category">
-        <option>ADULT</option>
-        <option>MINOR</option>
-        <option>DEPENDENT</option>
-        <option>CORPORATE</option>
-      </select>
-    </label>
+    @if (loading) {
+      <p class="muted">Chargement du profil...</p>
+    }
+
+    @if (isPatient) {
+      <label>Prenom <input [(ngModel)]="firstName" name="firstName" /></label>
+      <label>Nom <input [(ngModel)]="lastName" name="lastName" /></label>
+      <label>Email <input [(ngModel)]="email" name="email" type="email" /></label>
+      <label>Telephone <input [(ngModel)]="phone" name="phone" /></label>
+      <label>Numero social <input [(ngModel)]="socialSecurityNumber" name="socialSecurityNumber" /></label>
+      <label>Categorie
+        <select [(ngModel)]="category" name="category">
+          <option>ADULT</option>
+          <option>MINOR</option>
+          <option>DEPENDENT</option>
+          <option>CORPORATE</option>
+        </select>
+      </label>
+      @if (needsGuardian) {
+        <label>ID tuteur
+          <input [(ngModel)]="guardianId" name="guardianId" type="number" min="1" />
+        </label>
+      }
+      <label>Convention <input [(ngModel)]="companyName" name="companyName" /></label>
+    }
+
+    @if (isDoctor) {
+      <label>Specialite <input [(ngModel)]="specialty" name="specialty" /></label>
+      <label>Langues parlees <input [(ngModel)]="spokenLanguages" name="spokenLanguages" /></label>
+      <label>Tarif standard <input [(ngModel)]="standardConsultationRate" name="standardConsultationRate" type="number" /></label>
+      <label>Bio <textarea [(ngModel)]="bio" name="bio" rows="4"></textarea></label>
+    }
 
     <div *ngIf="error" class="message-box"
       style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #f0f0f0;">
       {{ error }}
     </div>
-    <button class="btn primary full" type="button" (click)="save()"
+    <div *ngIf="success" class="message-box"
+      style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #f0f0f0;">
+      {{ success }}
+    </div>
+    <button class="btn primary full" type="submit"
       [disabled]="saving">
       {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
     </button>

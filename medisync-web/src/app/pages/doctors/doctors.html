@@ -5,8 +5,8 @@
 </section>
 
 <section class="filter-bar">
-  <input [(ngModel)]="query" placeholder="Rechercher un medecin, une ville, une clinique" />
-  <select [(ngModel)]="specialty">
+  <input [(ngModel)]="query" name="query" placeholder="Rechercher un medecin ou une specialite" (input)="loadDoctors()" />
+  <select [(ngModel)]="specialty" (change)="loadDoctors()">
     @for (item of specialties; track item) {
       <option>{{ item }}</option>
     }
@@ -16,6 +16,16 @@
 @if (error) {
   <section class="section-panel">
     <p class="muted">{{ error }}</p>
+  </section>
+}
+@if (loading) {
+  <section class="section-panel">
+    <p class="muted">Recherche des medecins...</p>
+  </section>
+}
+@if (message) {
+  <section class="section-panel">
+    <p class="muted">{{ message }}</p>
   </section>
 }
 

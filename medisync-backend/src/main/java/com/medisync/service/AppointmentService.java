@@ -16,6 +16,7 @@ import jakarta.transaction.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -142,15 +143,17 @@ public class AppointmentService {
     // ── Notification ─────────────────────────────────────────────────────────
 
     private void saveNotification(Long appointmentId, Long patientId, String type) {
-        try {
-            NotificationLog n = new NotificationLog();
-            n.setAppointmentId(appointmentId);
-            n.setPatientId(patientId);
-            n.setType(type);
-            n.setSentAt(LocalDateTime.now());
-            notificationLogRepository.save(n);
-        } catch (Exception ex) {
-            System.err.println("Notification log skipped: " + ex.getMessage());
-        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                NotificationLog n = new NotificationLog();
+                n.setAppointmentId(appointmentId);
+                n.setPatientId(patientId);
+                n.setType(type);
+                n.setSentAt(LocalDateTime.now());
+                notificationLogRepository.save(n);
+            } catch (Exception ex) {
+                System.err.println("Notification log skipped: " + ex.getMessage());
+            }
+        });
     }
 }

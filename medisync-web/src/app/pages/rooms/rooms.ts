@@ -1,13 +1,19 @@
 import { Component } from '@angular/core';
-import { rooms } from '../../data/medisync-data';
 import { BackendRoom, MedisyncApiService } from '../../services/medisync-api.service';
+
+interface RoomCard {
+  number: string;
+  equipment: string;
+  doctor: string;
+  status: string;
+}
 
 @Component({
   selector: 'app-rooms',
   templateUrl: './rooms.html',
 })
 export class Rooms {
-  rooms = rooms;
+  rooms: RoomCard[] = [];
   error = '';
 
   constructor(private readonly api: MedisyncApiService) {

@@ -36,7 +36,7 @@
         <span class="badge" [class]="invoice.paid ? 'tone-green' : 'tone-yellow'">
           {{ invoice.paid ? 'Payee' : 'En attente' }}
         </span>
-        @if (!invoice.paid) {
+        @if (!invoice.paid && canCollectPayments) {
           <button type="button" (click)="markPaid(invoice)">Encaisser</button>
         }
       </div>

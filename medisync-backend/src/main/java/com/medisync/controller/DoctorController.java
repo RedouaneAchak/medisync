@@ -39,7 +39,7 @@ public class DoctorController {
      * GET /api/doctor/{id}
      * Récupère le profil d'un médecin par son ID.
      */
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<Doctor> getById(@PathVariable Long id) {
         return ResponseEntity.ok(doctorService.getById(id));
     }
@@ -49,9 +49,10 @@ public class DoctorController {
      * Recherche de médecins par spécialité (insensible à la casse).
      */
     @GetMapping("/search")
-    public ResponseEntity<List<Doctor>> searchBySpecialty(
-            @RequestParam String specialty) {
-        return ResponseEntity.ok(doctorService.searchBySpecialty(specialty));
+    public ResponseEntity<List<Doctor>> search(
+            @RequestParam(required = false) String specialty,
+            @RequestParam(required = false, name = "q") String query) {
+        return ResponseEntity.ok(doctorService.search(specialty, query));
     }
 
     // ── Disponibilités ────────────────────────────────────────────────────────

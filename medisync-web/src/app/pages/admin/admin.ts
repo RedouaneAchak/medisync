@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { appointments, doctors, patients } from '../../data/medisync-data';
 import {
   BackendAppointment,
   BackendDoctor,
@@ -11,15 +10,45 @@ import {
   MedisyncApiService,
 } from '../../services/medisync-api.service';
 
+interface AdminDoctorRow {
+  id: number;
+  name: string;
+  specialty: string;
+  languages: string;
+  price: number;
+  initials: string;
+}
+
+interface AdminPatientRow {
+  name: string;
+  category: string;
+  phone: string;
+  company: string;
+  lastVisit: string;
+  blood: string;
+}
+
+interface AdminAppointmentRow {
+  id: number;
+  doctor: string;
+  patient: string;
+  specialty: string;
+  date: string;
+  time: string;
+  room: string;
+  type: string;
+  status: string;
+}
+
 @Component({
   selector: 'app-admin',
   imports: [FormsModule],
   templateUrl: './admin.html',
 })
 export class Admin {
-  doctors = doctors;
-  patients = patients;
-  appointments = appointments;
+  doctors: AdminDoctorRow[] = [];
+  patients: AdminPatientRow[] = [];
+  appointments: AdminAppointmentRow[] = [];
   users: BackendUser[] = [];
   rooms: BackendRoom[] = [];
   error = '';
@@ -142,7 +171,6 @@ export class Admin {
     const firstname = doctor.user?.firstname ?? 'Medecin';
     const lastname = doctor.user?.lastname ?? `#${doctor.id}`;
     return {
-      ...doctors[0],
       id: doctor.id,
       name: `Dr. ${firstname} ${lastname}`,
       specialty: doctor.specialty ?? 'Medecine generale',
@@ -166,7 +194,6 @@ export class Admin {
   private toAppointmentRow(appointment: BackendAppointment) {
     const date = new Date(appointment.dateTime);
     return {
-      ...appointments[0],
       id: appointment.id,
       doctor: `Dr. ${appointment.doctor?.user?.firstname ?? ''} ${appointment.doctor?.user?.lastname ?? ''}`.trim(),
       patient: `${appointment.patient?.firstName ?? appointment.patient?.user?.firstname ?? ''} ${appointment.patient?.lastName ?? appointment.patient?.user?.lastname ?? ''}`.trim(),
