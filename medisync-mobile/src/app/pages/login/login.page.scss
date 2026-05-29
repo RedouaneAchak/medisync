@@ -3,25 +3,29 @@
 }
 
 .login-header {
-  background: var(--medisync-navy);
+  background: #102542;
   padding: 50px 20px 35px;
   text-align: center;
 
-  .logo-circle {
-    font-size: 48px;
+  .logo-img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 8px;
     margin-bottom: 10px;
   }
 
   .app-title {
-    color: var(--medisync-gold);
+    color: #f0c040;
     font-size: 28px;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 2px;
     margin: 0;
+    font-family: 'Libre Baskerville', Georgia, serif;
   }
 
   .app-subtitle {
-    color: rgba(255,255,255,0.6);
+    color: rgba(220, 233, 248, 0.8);
     font-size: 13px;
     margin: 5px 0 0;
   }

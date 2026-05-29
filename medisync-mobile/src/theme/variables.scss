@@ -1,21 +1,32 @@
 :root {
-  --ion-color-primary: #1565C0;
-  --ion-color-primary-rgb: 21, 101, 192;
+  /* Couleurs principales (identiques au web) */
+  --ion-color-primary: #0057b8;
+  --ion-color-primary-rgb: 0, 87, 184;
   --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-shade: #1258a8;
-  --ion-color-primary-tint: #2c74c6;
+  --ion-color-primary-shade: #003f87;
+  --ion-color-primary-tint: #e8f1ff;
 
-  --ion-background-color: #f0f5ff;
-  --ion-text-color: #1e2d4a;
+  --ion-background-color: #f7f9fc;
+  --ion-text-color: #162033;
+  --ion-font-family: 'Inter', Arial, sans-serif;
 
-  --medisync-navy: #050f2e;
-  --medisync-gold: #F0A500;
-  --medisync-blue: #1565C0;
-  --medisync-bg: #f0f5ff;
+  /* Variables custom MediSync — identiques au web */
+  --medisync-navy: #102542;
+  --medisync-gold: #a15c00;
+  --medisync-blue: #0057b8;
+  --medisync-blue-dark: #003f87;
+  --medisync-blue-soft: #e8f1ff;
+  --medisync-bg: #f7f9fc;
+  --medisync-soft: #eef3f8;
   --medisync-card: #ffffff;
-  --medisync-text: #1e2d4a;
-  --medisync-muted: #6b7fa3;
-  --medisync-border: #dbe8f8;
-  --medisync-success: #166534;
-  --medisync-error: #991b1b;
+  --medisync-text: #162033;
+  --medisync-muted: #5d6b82;
+  --medisync-border: #d8e2ee;
+  --medisync-success: #0a7f55;
+  --medisync-success-soft: #e6f5ee;
+  --medisync-error: #b3261e;
+  --medisync-error-soft: #fde8e7;
+  --medisync-yellow: #a15c00;
+  --medisync-yellow-soft: #fff3d8;
+  --medisync-shadow: 0 18px 50px rgba(22, 32, 51, 0.09);
 }
