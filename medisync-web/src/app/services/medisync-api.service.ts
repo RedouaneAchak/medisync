@@ -71,6 +71,11 @@ export interface BackendConsultation {
 export class MedisyncApiService {
   constructor(private readonly http: HttpClient) {}
 
+  updatePatientProfile(patientId: number, body: Partial<BackendPatient>) {
+    return this.http.put<BackendPatient>(`/api/patient/${patientId}`, body);
+  }
+
+
   getDoctors() {
     return this.http.get<BackendDoctor[]>('/api/doctor');
   }

@@ -9,8 +9,8 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './login.html',
 })
 export class Login {
-  email = 'patient@medisync.ma';
-  password = 'password';
+  email = '';
+  password = '';
   fullName = '';
   mode: 'signin' | 'signup' = 'signin';
   error = '';

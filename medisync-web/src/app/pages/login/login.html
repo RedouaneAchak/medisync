@@ -48,11 +48,10 @@
       {{ loading ? 'Connexion...' : mode === 'signin' ? 'Sign in' : 'Sign up' }}
     </button>
     <div class="auth-divider"><span>ou verification en deux etapes</span></div>
-    <button type="button" class="google-button">
+    <button type="button" class="google-button"> Continuer avec
       <span class="google-g">
         <b class="google-blue">G</b><b class="google-red">o</b><b class="google-yellow">o</b><b class="google-blue">g</b><b class="google-green">l</b><b class="google-red">e</b>
       </span>
-      Continuer avec Google
     </button>
     <button type="button" class="muted-link as-button" (click)="mode = mode === 'signin' ? 'signup' : 'signin'">
       {{ mode === 'signin' ? 'Creer un compte patient' : 'J ai deja un compte' }}

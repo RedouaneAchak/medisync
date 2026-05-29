@@ -36,13 +36,10 @@ public class PatientService {
     }
 
     @Transactional
-    public Patient updateProfile(Long patientId, Patient updated) {
-        Patient existing = getProfile(patientId);
-        existing.setFirstName(updated.getFirstName());
-        existing.setLastName(updated.getLastName());
-        existing.setPhoneNumber(updated.getPhoneNumber());
-        existing.setCompanyName(updated.getCompanyName());
-        return patientRepository.save(existing);
+    // Inside PatientService.java
+    public Patient updateProfile(Long id, Patient updatedPatient) {
+        // Just save the complete object exactly as Angular sent it
+        return patientRepository.save(updatedPatient);
     }
 
     // ── Rendez-vous ───────────────────────────────────────────────────────────

@@ -5,7 +5,8 @@
 </section>
 
 <section class="booking-layout">
-  <form class="section-panel form-panel">
+  <form class="section-panel form-panel" (ngSubmit)="save()">
+
     <label>Nom complet <input [(ngModel)]="name" name="name" /></label>
     <label>Email <input [(ngModel)]="email" name="email" type="email" /></label>
     <label>Telephone <input [(ngModel)]="phone" name="phone" /></label>
@@ -17,12 +18,24 @@
         <option>CORPORATE</option>
       </select>
     </label>
-    <button class="btn primary full">Enregistrer</button>
+
+    <div *ngIf="error" class="message-box"
+      style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #f0f0f0;">
+      {{ error }}
+    </div>
+    <button class="btn primary full" type="button" (click)="save()"
+      [disabled]="saving">
+      {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+    </button>
+
   </form>
   <aside class="section-panel">
     <h2>Notifications</h2>
-    <label class="check-row"><input type="checkbox" checked /> Rappels 24h avant rendez-vous</label>
-    <label class="check-row"><input type="checkbox" checked /> Alertes de facturation</label>
-    <label class="check-row"><input type="checkbox" /> Resume hebdomadaire</label>
+    <label class="check-row"><input type="checkbox" checked /> Rappels 24h avant
+      rendez-vous</label>
+    <label class="check-row"><input type="checkbox" checked /> Alertes de
+      facturation</label>
+    <label class="check-row"><input type="checkbox" /> Resume
+      hebdomadaire</label>
   </aside>
 </section>
