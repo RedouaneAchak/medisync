@@ -14,7 +14,10 @@ import com.medisync.repository.sql.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.Optional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -37,45 +40,32 @@ public class PatientService {
     }
 
     @Transactional
-    public Patient updateProfile(Long id, Patient updatedPatient) {
-        Patient existing = getProfile(id);
+    public Patient updateProfile(Long id, Patient updatedData) {
+        // 1. Fetch the existing patient (this pulls the secure password into memory)
+        Patient existing = patientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+        String newSsn = updatedData.getSocialSecurityNumber();
+        if (newSsn != null && !newSsn.isBlank()) {
+            Optional<Patient> duplicateCheck = patientRepository.findBySocialSecurityNumber(newSsn);
 
-        if (updatedPatient.getFirstName() != null) {
-            existing.setFirstName(updatedPatient.getFirstName());
-            existing.getUser().setFirstname(updatedPatient.getFirstName());
-        }
-        if (updatedPatient.getLastName() != null) {
-            existing.setLastName(updatedPatient.getLastName());
-            existing.getUser().setLastname(updatedPatient.getLastName());
-        }
-        if (updatedPatient.getPhoneNumber() != null) {
-            existing.setPhoneNumber(updatedPatient.getPhoneNumber());
-        }
-        if (updatedPatient.getSocialSecurityNumber() != null) {
-            existing.setSocialSecurityNumber(updatedPatient.getSocialSecurityNumber());
-        }
-        if (updatedPatient.getCategory() != null) {
-            existing.setCategory(updatedPatient.getCategory());
-            if (updatedPatient.getCategory() == PatientCategory.ADULT
-                    || updatedPatient.getCategory() == PatientCategory.CORPORATE) {
-                existing.setGuardian(null);
+            // If the SSN exists AND it belongs to a different user, throw a clean error!
+            if (duplicateCheck.isPresent() && !duplicateCheck.get().getId().equals(id)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This social number already exists");
             }
         }
-        if (updatedPatient.getCompanyName() != null) {
-            existing.setCompanyName(updatedPatient.getCompanyName());
-        }
-        if (updatedPatient.getGuardian() != null && updatedPatient.getGuardian().getId() != null) {
-            Patient guardian = patientRepository.findById(updatedPatient.getGuardian().getId())
-                    .orElseThrow(() -> new RuntimeException("Tuteur introuvable : " + updatedPatient.getGuardian().getId()));
-            if (guardian.getId().equals(existing.getId())) {
-                throw new RuntimeException("Un patient ne peut pas etre son propre tuteur.");
-            }
-            existing.setGuardian(guardian);
-        }
-        if (updatedPatient.getUser() != null && updatedPatient.getUser().getEmail() != null) {
-            existing.getUser().setEmail(updatedPatient.getUser().getEmail());
+        // 2. Update ONLY the fields Angular actually sends
+        existing.setPhoneNumber(updatedData.getPhoneNumber());
+        existing.setSocialSecurityNumber(updatedData.getSocialSecurityNumber());
+        existing.setCategory(updatedData.getCategory());
+        existing.setCompanyName(updatedData.getCompanyName());
+
+        // 3. Update the User names, but leave the password alone!
+        if (updatedData.getUser() != null) {
+            existing.getUser().setFirstname(updatedData.getUser().getFirstname());
+            existing.getUser().setLastname(updatedData.getUser().getLastname());
         }
 
+        // 4. Save safely without crashing
         return patientRepository.save(existing);
     }
 

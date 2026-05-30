@@ -1,43 +1,50 @@
 <section class="page-title">
-  <span class="eyebrow">Trouver un specialiste</span>
-  <h1>Medecins disponibles</h1>
-  <p>Filtrez par specialite, ville ou clinique, puis choisissez un creneau de consultation.</p>
+  <span class="eyebrow">Trouver un spécialiste</span>
+  <h1>Médecins disponibles</h1>
+  <p>Filtrez par spécialité ou par nom, puis réservez un créneau.</p>
 </section>
 
 <section class="filter-bar">
-  <input [(ngModel)]="query" name="query" placeholder="Rechercher un medecin ou une specialite" (input)="loadDoctors()" />
-  <select [(ngModel)]="specialty" (change)="loadDoctors()">
+  <input
+    [(ngModel)]="query"
+    name="query"
+    placeholder="Rechercher un médecin ou une spécialité"
+    (ngModelChange)="onSearchChange()"
+  />
+  <select [(ngModel)]="specialty" (ngModelChange)="onSearchChange()">
     @for (item of specialties; track item) {
       <option>{{ item }}</option>
     }
   </select>
 </section>
 
-@if (error) {
+@if (loading) {
+  <section class="section-panel">
+    <p class="muted">Chargement des médecins…</p>
+  </section>
+}
+
+@if (error && !loading) {
   <section class="section-panel">
     <p class="muted">{{ error }}</p>
   </section>
 }
-@if (loading) {
-  <section class="section-panel">
-    <p class="muted">Recherche des medecins...</p>
-  </section>
-}
-@if (message) {
+
+@if (message && !loading) {
   <section class="section-panel">
     <p class="muted">{{ message }}</p>
   </section>
 }
 
 <section class="doctor-grid">
-  @for (doctor of filteredDoctors; track doctor.id) {
+  @for (doctor of doctors; track doctor.id) {
     <article class="doctor-card">
       <div class="avatar">{{ doctor.initials }}</div>
       <div class="doctor-body">
         <div class="doctor-topline">
           <h2>{{ doctor.name }}</h2>
           <span class="badge" [class]="doctor.available ? 'tone-green' : 'tone-gray'">
-            {{ doctor.available ? 'Disponible' : 'Planning limite' }}
+            {{ doctor.available ? 'Disponible' : 'Planning limité' }}
           </span>
         </div>
         <p>{{ doctor.specialty }} · {{ doctor.clinic }} · {{ doctor.city }}</p>
@@ -47,8 +54,7 @@
           <span>{{ doctor.price }} MAD</span>
         </div>
         <div class="card-actions">
-          <span>Prochain: {{ doctor.nextSlot }}</span>
-          <a routerLink="/booking" class="btn small primary">Reserver</a>
+          <a routerLink="/booking" class="btn small primary">Réserver</a>
         </div>
       </div>
     </article>

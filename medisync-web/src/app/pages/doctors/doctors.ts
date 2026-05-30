@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { BackendDoctor, MedisyncApiService } from '../../services/medisync-api.service';
-
-interface Doctor {
+import { Subject, debounceTime, switchMap, takeUntil } from 'rxjs';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+interface DoctorCard {
   id: number;
   name: string;
   specialty: string;
@@ -12,7 +13,6 @@ interface Doctor {
   languages: string;
   rating: number;
   price: number;
-  nextSlot: string;
   available: boolean;
   initials: string;
 }
@@ -22,73 +22,95 @@ interface Doctor {
   imports: [FormsModule, RouterLink],
   templateUrl: './doctors.html',
 })
-export class Doctors {
-  doctors: Doctor[] = [];
+export class Doctors implements OnInit, OnDestroy {
+  doctors: DoctorCard[] = [];
+  specialties: string[] = ['Tous'];
   query = '';
   specialty = 'Tous';
   loading = false;
   error = '';
   message = '';
 
-  specialties = ['Tous'];
+  private search$ = new Subject<void>();
+  private destroy$ = new Subject<void>();
 
-  constructor(private readonly api: MedisyncApiService) {
-    this.loadDoctors();
-  }
+  constructor(private readonly api: MedisyncApiService, private readonly cdr: ChangeDetectorRef) {}
 
-  get filteredDoctors() {
-    const query = this.query.toLowerCase().trim();
-    return this.doctors.filter((doctor) => {
-      const matchesSpecialty = this.specialty === 'Tous' || doctor.specialty === this.specialty;
-      const matchesQuery = [doctor.name, doctor.specialty, doctor.city, doctor.clinic]
-        .join(' ')
-        .toLowerCase()
-        .includes(query);
-      return matchesSpecialty && matchesQuery;
+  ngOnInit(): void {
+    this.search$.pipe(
+      // 400ms: only fires when the user pauses typing, not on every keystroke.
+      // switchMap cancels any in-flight request if the user types again before
+      // the response arrives, so results always match the latest input.
+      debounceTime(400),
+      switchMap(() => {
+        this.loading = true;
+        this.error   = '';
+        this.message = '';
+        const hasFilter = this.query.trim() || this.specialty !== 'Tous';
+        return hasFilter
+          ? this.api.searchDoctors(this.specialty, this.query)
+          : this.api.getDoctors();
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next:  (items) => this.handleResults(items),
+      error: ()      => this.handleError(),
     });
+
+    // Initial load bypasses debounce — fires immediately on page open
+    this.loadAll();
   }
 
-  loadDoctors(): void {
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onSearchChange(): void {
+    this.search$.next();
+  }
+
+  private loadAll(): void {
     this.loading = true;
-    this.error = '';
+    this.error   = '';
     this.message = '';
-    const request = this.query.trim() || this.specialty !== 'Tous'
-      ? this.api.searchDoctors(this.specialty, this.query)
-      : this.api.getDoctors();
-
-    request.subscribe({
-      next: (items) => {
-        this.doctors = items.map((doctor) => this.toDoctorCard(doctor));
-        this.specialties = ['Tous', ...new Set([...this.specialties.filter((item) => item !== 'Tous'), ...this.doctors.map((doctor) => doctor.specialty)])];
-        if (!items.length) {
-          this.message = 'Aucun medecin ne correspond a cette recherche.';
-        }
-        this.loading = false;
-      },
-      error: () => {
-        this.doctors = [];
-        this.error = 'Recherche impossible. Verifiez que les medecins existent dans la table doctors et sont lies a un user DOCTOR.';
-        this.loading = false;
-      },
+    this.api.getDoctors().pipe(takeUntil(this.destroy$)).subscribe({
+      next:  (items) => this.handleResults(items),
+      error: ()      => this.handleError(),
     });
   }
 
-  private toDoctorCard(doctor: BackendDoctor): Doctor {
-    const firstname = doctor.user?.firstname ?? 'Dr.';
-    const lastname = doctor.user?.lastname ?? `#${doctor.id}`;
-    const name = `${firstname} ${lastname}`.startsWith('Dr.') ? `${firstname} ${lastname}` : `Dr. ${firstname} ${lastname}`;
+private handleResults(items: BackendDoctor[]): void {
+    this.doctors = items.map(d => this.toCard(d));
+    const specs  = items.map(d => d.specialty).filter((s): s is string => !!s);
+    this.specialties = ['Tous', ...new Set(specs)];
+    this.message = items.length ? '' : 'Aucun médecin ne correspond à cette recherche.';
+    this.loading = false;
+    
+    // 3. Force Angular to draw the HTML immediately!
+    this.cdr.detectChanges(); 
+  }
+
+  private handleError(): void {
+    this.doctors = [];
+    this.error   = 'Impossible de charger les médecins. Vérifiez que le serveur est en ligne.';
+    this.loading = false;
+  }
+
+  private toCard(d: BackendDoctor): DoctorCard {
+    const first = d.user?.firstname ?? '';
+    const last  = d.user?.lastname  ?? `#${d.id}`;
     return {
-      id: doctor.id,
-      name,
-      specialty: doctor.specialty ?? 'Medecine generale',
-      city: 'Casablanca',
-      clinic: 'MediSync',
-      languages: doctor.spokenLanguages ?? 'Francais, Arabe',
-      rating: 4.7,
-      price: doctor.standardConsultationRate ?? 300,
-      nextSlot: 'Voir disponibilites',
+      id:        d.id,
+      name:      `Dr. ${first} ${last}`.trim(),
+      specialty: d.specialty  ?? 'Médecine générale',
+      city:      'Casablanca',
+      clinic:    'MediSync',
+      languages: d.spokenLanguages ?? 'Français, Arabe',
+      rating:    4.7,
+      price:     d.standardConsultationRate ?? 300,
       available: true,
-      initials: `${firstname[0] ?? 'M'}${lastname[0] ?? 'D'}`.toUpperCase(),
+      initials:  `${first[0] ?? 'M'}${last[0] ?? 'D'}`.toUpperCase(),
     };
   }
 }

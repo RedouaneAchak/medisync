@@ -12,12 +12,12 @@
     }
 
     @if (isPatient) {
-      <label>Prenom <input [(ngModel)]="firstName" name="firstName" /></label>
+      <label>Prénom <input [(ngModel)]="firstName" name="firstName" /></label>
       <label>Nom <input [(ngModel)]="lastName" name="lastName" /></label>
       <label>Email <input [(ngModel)]="email" name="email" type="email" /></label>
-      <label>Telephone <input [(ngModel)]="phone" name="phone" /></label>
-      <label>Numero social <input [(ngModel)]="socialSecurityNumber" name="socialSecurityNumber" /></label>
-      <label>Categorie
+      <label>Téléphone <input [(ngModel)]="phone" name="phone" /></label>
+      <label>Numéro de sécurité social <input [(ngModel)]="socialSecurityNumber" name="socialSecurityNumber" /></label>
+      <label>Catégorie
         <select [(ngModel)]="category" name="category">
           <option>ADULT</option>
           <option>MINOR</option>

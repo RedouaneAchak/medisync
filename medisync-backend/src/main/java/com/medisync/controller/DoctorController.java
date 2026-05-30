@@ -48,12 +48,14 @@ public class DoctorController {
      * GET /api/doctor/search?specialty=Cardiologie
      * Recherche de médecins par spécialité (insensible à la casse).
      */
-    @GetMapping("/search")
-    public ResponseEntity<List<Doctor>> search(
-            @RequestParam(required = false) String specialty,
-            @RequestParam(required = false, name = "q") String query) {
-        return ResponseEntity.ok(doctorService.search(specialty, query));
-    }
+@GetMapping("/search")
+public ResponseEntity<List<Doctor>> searchDoctors(
+        // @RequestParam pulls the ?specialty= and ?q= directly from the Angular URL
+        @RequestParam(required = false) String specialty,
+        @RequestParam(required = false) String q
+) {
+    return ResponseEntity.ok(doctorService.searchDoctors(specialty, q));
+}
 
     // ── Disponibilités ────────────────────────────────────────────────────────
 

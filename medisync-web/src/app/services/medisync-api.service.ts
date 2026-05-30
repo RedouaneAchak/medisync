@@ -103,6 +103,9 @@ export class MedisyncApiService {
     return this.http.get<BackendDoctor[]>('/api/doctor/search', { params });
   }
 
+
+
+
   getAvailableSlots(doctorId: number, date: string, duration = 30) {
     const params = new HttpParams().set('date', date).set('duration', duration);
     return this.http.get<string[]>(`/api/doctor/${doctorId}/available-slots`, { params });

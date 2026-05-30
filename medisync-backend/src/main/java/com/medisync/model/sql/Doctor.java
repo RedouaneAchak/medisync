@@ -15,8 +15,8 @@ public class Doctor {
     @JoinColumn(name = "id")
     private User user;
 
-    private String specialty; //[cite: 1]
+    private String specialty; 
     private String bio;
-    private String spokenLanguages; //[cite: 1]
-    private Double standardConsultationRate; // For Secteur 1, 2, 3 pricing[cite: 1]
+    private String spokenLanguages; 
+    private Double standardConsultationRate; // For Secteur 1, 2, 3 pricing
 }

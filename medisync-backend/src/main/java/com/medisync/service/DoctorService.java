@@ -26,14 +26,10 @@ public class DoctorService {
 
     // ── Recherche de médecins ─────────────────────────────────────────────────
 
-    public List<Doctor> search(String specialty, String query) {
-        String normalizedSpecialty = normalizeSearchTerm(specialty);
-        String normalizedQuery = normalizeSearchTerm(query);
-        if (normalizedSpecialty == null && normalizedQuery == null) {
-            return doctorRepository.findAll();
-        }
-        return doctorRepository.search(normalizedSpecialty, normalizedQuery);
-    }
+public List<Doctor> searchDoctors(String specialty, String q) {
+    // This calls the custom @Query we wrote in DoctorRepository
+    return doctorRepository.searchDoctors(specialty, q);
+}
 
     public List<Doctor> getAll() {
         return doctorRepository.findAll();
