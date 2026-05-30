@@ -32,8 +32,8 @@ public class AuthenticationController {
         return ResponseEntity.ok(service.authenticate(request));
     }
 
-//    @PostMapping("/google")
-//    public ResponseEntity<AuthenticationResponse> googleLogin(@RequestBody GoogleLoginRequest request) {
-//        return ResponseEntity.ok(service.googleLogin(request));
-//    } decommenté après l'ajout de Client ID Google dans application.properties
+    @PostMapping("/google")
+    public ResponseEntity<AuthenticationResponse> googleLogin(@RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(service.googleLogin(request));
+    } //decommenté après l'ajout de Client ID Google dans application.properties
 }

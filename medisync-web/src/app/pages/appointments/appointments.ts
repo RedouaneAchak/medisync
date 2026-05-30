@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
@@ -27,16 +27,19 @@ interface AppointmentRow {
   imports: [FormsModule],
   templateUrl: './appointments.html',
 })
-export class Appointments {
+export class Appointments implements OnInit {
   appointments: AppointmentRow[] = [];
   rooms: BackendRoom[] = [];
-  activeTab = 'A venir';
-  tabs = ['A venir', 'A confirmer', 'Historique'];
+  
+  activeTab = 'À venir';
+  tabs = ['À venir', 'À confirmer', 'Historique'];
+  
+  // Bulletproof state management
   error = '';
-  message = '';
-  messageType: 'success' | 'error' | 'info' = 'info';
+  success = '';
   loading = false;
   saving = false;
+  
   editingId: number | null = null;
   editForm = {
     date: '',
@@ -48,14 +51,38 @@ export class Appointments {
   constructor(
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
-  ) {
+    private readonly cdr: ChangeDetectorRef // Prevents the UI sleep bug!
+  ) {}
+
+  ngOnInit(): void {
     this.loadAppointments();
     this.api.getRooms().subscribe({
       next: (rooms) => {
         this.rooms = rooms;
+        this.cdr.detectChanges();
       },
     });
   }
+
+  // --- THE TAB FILTER LOGIC ---
+  get filteredAppointments(): AppointmentRow[] {
+    const today = new Date().toISOString().slice(0, 10);
+    
+    return this.appointments.filter(app => {
+      if (this.activeTab === 'À venir') {
+        return app.isoDate >= today && app.status !== 'CANCELLED';
+      }
+      if (this.activeTab === 'À confirmer') {
+        return app.status === 'PENDING';
+      }
+      if (this.activeTab === 'Historique') {
+        return app.isoDate < today || app.status === 'CANCELLED';
+      }
+      return true;
+    });
+  }
+
+  // --- ACTIONS ---
 
   startEdit(appointment: AppointmentRow): void {
     this.editingId = appointment.id;
@@ -69,72 +96,95 @@ export class Appointments {
 
   saveEdit(): void {
     if (!this.editingId || !this.editForm.roomId) {
-      this.setMessage('Choisissez une salle avant de modifier le rendez-vous.', 'error');
+      this.error = 'Choisissez une salle avant de modifier le rendez-vous.';
       return;
     }
 
     this.saving = true;
-    this.message = '';
+    this.error = '';
+    this.success = '';
+    
     this.api
       .updateAppointment(this.editingId, {
         dateTime: `${this.editForm.date}T${this.editForm.time}:00`,
         durationMinutes: this.editForm.durationMinutes,
         roomId: this.editForm.roomId,
       })
-      .pipe(finalize(() => (this.saving = false)))
+      .pipe(finalize(() => {
+        this.saving = false;
+        this.cdr.detectChanges();
+      }))
       .subscribe({
         next: (updated) => {
           this.appointments = this.appointments.map((appointment) =>
             appointment.id === updated.id ? this.toAppointmentRow(updated) : appointment,
           );
           this.editingId = null;
-          this.setMessage('Rendez-vous modifie avec succes.', 'success');
+          this.success = 'Rendez-vous modifié avec succès.';
         },
-        error: () => {
-          this.setMessage('Modification impossible: creneau ou salle indisponible.', 'error');
+        error: (err: any) => {
+          this.error = err.error?.message || 'Modification impossible: créneau ou salle indisponible.';
         },
       });
   }
 
   cancel(id: number): void {
     this.saving = true;
-    this.message = '';
-    this.api.cancelAppointment(id).subscribe({
+    this.error = '';
+    this.success = '';
+    
+    this.api.cancelAppointment(id)
+      .pipe(finalize(() => {
+        this.saving = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
       next: (updated) => {
         this.appointments = this.appointments.map((appointment) =>
           appointment.id === id ? this.toAppointmentRow(updated) : appointment,
         );
-        this.saving = false;
-        this.setMessage('Rendez-vous annule avec succes.', 'success');
+        this.success = 'Rendez-vous annulé avec succès.';
       },
       error: () => {
-        this.saving = false;
-        this.setMessage('Annulation impossible.', 'error');
+        this.error = 'Annulation impossible.';
       },
     });
   }
 
   confirm(id: number): void {
     this.saving = true;
-    this.message = '';
-    this.api.confirmAppointment(id).subscribe({
+    this.error = '';
+    this.success = '';
+    
+    this.api.confirmAppointment(id)
+      .pipe(finalize(() => {
+        this.saving = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
       next: (updated) => {
         this.appointments = this.appointments.map((appointment) =>
           appointment.id === id ? this.toAppointmentRow(updated) : appointment,
         );
-        this.saving = false;
-        this.setMessage('Rendez-vous confirme avec succes.', 'success');
+        this.success = 'Rendez-vous confirmé avec succès.';
       },
       error: () => {
-        this.saving = false;
-        this.setMessage('Confirmation impossible.', 'error');
+        this.error = 'Confirmation impossible.';
       },
     });
   }
 
+  // --- PERMISSIONS ---
+  
   get canModifyAppointments(): boolean {
     const role = this.authService.currentUser()?.role;
     return role === 'SECRETARY' || role === 'ADMIN';
+  }
+
+  get canCancelAppointments(): boolean {
+    const role = this.authService.currentUser()?.role;
+    // Patients should be allowed to cancel their own appointments!
+    return role === 'PATIENT' || role === 'SECRETARY' || role === 'ADMIN';
   }
 
   get canConfirmAppointments(): boolean {
@@ -142,13 +192,17 @@ export class Appointments {
     return role === 'DOCTOR' || role === 'SECRETARY' || role === 'ADMIN';
   }
 
+  // --- HELPERS ---
+
   private loadAppointments(): void {
     const user = this.authService.currentUser();
     this.loading = true;
     this.error = '';
+    
     const now = new Date();
     const from = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).toISOString().slice(0, 19);
     const to = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()).toISOString().slice(0, 19);
+    
     const request =
       user?.role === 'PATIENT'
         ? this.api.getPatientAppointments(user.userId)
@@ -156,11 +210,14 @@ export class Appointments {
           ? this.api.getDoctorAppointments(user.userId, from, to)
           : this.api.getAppointments();
 
-    request.pipe(finalize(() => (this.loading = false))).subscribe({
+    request.pipe(finalize(() => {
+      this.loading = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: (items) => {
         this.appointments = items.map((appointment) => this.toAppointmentRow(appointment));
         if (!items.length) {
-          this.setMessage('Aucun rendez-vous trouve.', 'info');
+          this.error = 'Aucun rendez-vous trouvé.';
         }
       },
       error: () => {
@@ -175,9 +232,10 @@ export class Appointments {
     const doctorUser = appointment.doctor?.user;
     const patient = appointment.patient;
     const status = appointment.status ?? 'PENDING';
+    
     return {
       id: appointment.id,
-      doctor: doctorUser ? `Dr. ${doctorUser.firstname} ${doctorUser.lastname}` : 'Medecin',
+      doctor: doctorUser ? `Dr. ${doctorUser.firstname} ${doctorUser.lastname}` : 'Médecin',
       patient: `${patient?.firstName ?? patient?.user?.firstname ?? 'Patient'} ${patient?.lastName ?? patient?.user?.lastname ?? ''}`.trim(),
       specialty: appointment.doctor?.specialty ?? 'Consultation',
       date: date.toLocaleDateString('fr-MA'),
@@ -193,17 +251,8 @@ export class Appointments {
   }
 
   private statusTone(status: string): StatusTone {
-    if (status === 'CONFIRMED') {
-      return 'green';
-    }
-    if (status === 'CANCELLED') {
-      return 'red';
-    }
+    if (status === 'CONFIRMED') return 'green';
+    if (status === 'CANCELLED') return 'red';
     return 'yellow';
-  }
-
-  private setMessage(message: string, type: 'success' | 'error' | 'info'): void {
-    this.message = message;
-    this.messageType = type;
   }
 }

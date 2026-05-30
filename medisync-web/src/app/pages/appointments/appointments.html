@@ -1,5 +1,5 @@
 <section class="page-title compact">
-  <span class="eyebrow">Planning medical</span>
+  <span class="eyebrow">Planning médical</span>
   <h1>Rendez-vous</h1>
 </section>
 
@@ -11,16 +11,17 @@
 
 <section class="section-panel">
   @if (error) {
-    <p class="muted">{{ error }}</p>
+    <p class="muted tone-red">{{ error }}</p>
   }
-  @if (message) {
-    <p class="muted" [class.tone-green]="messageType === 'success'" [class.tone-red]="messageType === 'error'">{{ message }}</p>
+  @if (success) {
+    <p class="muted tone-green">{{ success }}</p>
   }
   @if (loading) {
-    <p class="muted">Chargement des rendez-vous...</p>
+    <p class="muted">Chargement des rendez-vous en cours...</p>
   }
+  
   <div class="table-list">
-    @for (appointment of appointments; track appointment.id) {
+    @for (appointment of filteredAppointments; track appointment.id) {
       <div class="list-row appointment-row">
         <div>
           <strong>{{ appointment.date }} · {{ appointment.time }}</strong>
@@ -31,18 +32,20 @@
           <span>{{ appointment.specialty }}</span>
         </div>
         <span class="badge" [class]="'tone-' + appointment.tone">{{ appointment.status }}</span>
+        
         <div class="inline-actions">
-          @if (canModifyAppointments) {
-            <button type="button" (click)="startEdit(appointment)" [disabled]="saving">Modifier</button>
+          @if (canModifyAppointments && appointment.status !== 'CANCELLED') {
+            <button type="button" class="btn small outline" (click)="startEdit(appointment)" [disabled]="saving">Modifier</button>
           }
-          @if (canConfirmAppointments) {
-            <button type="button" (click)="confirm(appointment.id)" [disabled]="saving">Confirmer</button>
+          @if (canConfirmAppointments && appointment.status === 'PENDING') {
+            <button type="button" class="btn small primary" (click)="confirm(appointment.id)" [disabled]="saving">Confirmer</button>
           }
-          @if (canModifyAppointments) {
-            <button type="button" (click)="cancel(appointment.id)" [disabled]="saving">Annuler</button>
+          @if (canCancelAppointments && appointment.status !== 'CANCELLED') {
+            <button type="button" class="btn small outline tone-red" (click)="cancel(appointment.id)" [disabled]="saving">Annuler</button>
           }
         </div>
       </div>
+      
       @if (editingId === appointment.id) {
         <form class="form-panel" (ngSubmit)="saveEdit()">
           <label>
@@ -54,7 +57,7 @@
             <input [(ngModel)]="editForm.time" name="time" type="time" required />
           </label>
           <label>
-            Duree
+            Durée
             <select [(ngModel)]="editForm.durationMinutes" name="durationMinutes">
               <option [ngValue]="15">15 min</option>
               <option [ngValue]="30">30 min</option>
@@ -76,7 +79,7 @@
       }
     } @empty {
       @if (!loading) {
-        <p class="muted">Aucun rendez-vous a afficher.</p>
+        <p class="muted">Aucun rendez-vous dans cette catégorie.</p>
       }
     }
   </div>

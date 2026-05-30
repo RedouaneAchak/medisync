@@ -1,34 +1,30 @@
 <section class="page-title">
   <span class="eyebrow">Reservation</span>
   <h1>Demander un rendez-vous</h1>
-  <p>Selectionnez le medecin, le motif et le creneau. Le statut passera en
-    attente avant confirmation.</p>
+  <p>Selectionnez le medecin, le motif et le creneau. Le statut passera en attente avant confirmation.</p>
 </section>
 
 <section class="booking-layout">
   <form class="section-panel form-panel" (ngSubmit)="submit()">
     <label>
       Medecin
-      <select [(ngModel)]="selectedDoctorId" name="doctor"
-        (change)="refreshSlots()"
-        [disabled]="loadingDoctors || !doctors.length">
+      <select [(ngModel)]="selectedDoctorId" name="doctor" (change)="refreshSlots()" [disabled]="loadingDoctors || !doctors.length">
         @for (doctor of doctors; track doctor.id) {
-        <option [ngValue]="doctor.id">{{ doctor.name }}</option>
+          <option [ngValue]="doctor.id">{{ doctor.name }}</option>
         }
       </select>
     </label>
     @if (canChoosePatient) {
-    <label>
-      Patient
-      <select [(ngModel)]="selectedPatientId" name="patient">
-        @for (patient of patients; track patient.id) {
-        <option [ngValue]="patient.id">
-          {{ patient.firstName || patient.user?.firstname }} {{ patient.lastName
-          || patient.user?.lastname }}
-        </option>
-        }
-      </select>
-    </label>
+      <label>
+        Patient
+        <select [(ngModel)]="selectedPatientId" name="patient">
+          @for (patient of patients; track patient.id) {
+            <option [ngValue]="patient.id">
+              {{ patient.firstName || patient.user?.firstname }} {{ patient.lastName || patient.user?.lastname }}
+            </option>
+          }
+        </select>
+      </label>
     }
     <label>
       Motif
@@ -41,16 +37,13 @@
     </label>
     <label>
       Date
-      <input [(ngModel)]="selectedDate" name="date" type="date"
-        (change)="refreshSlots()" />
+      <input [(ngModel)]="selectedDate" name="date" type="date" (change)="refreshSlots()" />
     </label>
     <label>
       Salle
-      <select [(ngModel)]="selectedRoomId" name="room"
-        [disabled]="loadingRooms || !rooms.length">
+      <select [(ngModel)]="selectedRoomId" name="room" [disabled]="loadingRooms || !rooms.length">
         @for (room of rooms; track room.id) {
-        <option [ngValue]="room.id">{{ room.roomNumber }} - {{
-          room.equipmentType }}</option>
+          <option [ngValue]="room.id">{{ room.roomNumber }} - {{ room.equipmentType }}</option>
         }
       </select>
     </label>
@@ -58,21 +51,19 @@
       <input [(ngModel)]="forSomeoneElse" name="thirdParty" type="checkbox" />
       Rendez-vous pour un tiers ou mineur
     </label>
-    <label>
+<label>
       Description
-      <textarea [(ngModel)]="description" name="description" rows="4"
-        placeholder="Symptômes, contexte ou remarques"></textarea>
+      <textarea [(ngModel)]="description" name="description" rows="4" placeholder="Symptômes, contexte ou remarques"></textarea>
     </label>
-
+    
     @if (error) {
-    <p class="muted tone-red">{{ error }}</p>
+      <p class="muted tone-red">{{ error }}</p>
     }
     @if (success) {
-    <p class="muted tone-green">{{ success }}</p>
+      <p class="muted tone-green">{{ success }}</p>
     }
-
-    <button class="btn primary full" type="submit"
-      [disabled]="saving || !selectedDoctorId || !selectedRoomId || !selectedTime">
+    
+    <button class="btn primary full" type="submit" [disabled]="saving || !selectedDoctorId || !selectedRoomId || !selectedTime">
       {{ saving ? 'Enregistrement...' : 'Confirmer la demande' }}
     </button>
   </form>
@@ -85,12 +76,11 @@
     </div>
     <div class="slot-grid">
       @for (slot of slots; track slot) {
-      <button type="button" class="slot-button"
-        [class.active]="selectedTime === slot" (click)="selectedTime = slot">
-        {{ slot }}
-      </button>
+        <button type="button" class="slot-button" [class.active]="selectedTime === slot" (click)="selectedTime = slot">
+          {{ slot }}
+        </button>
       } @empty {
-      <p class="muted">Aucun creneau disponible.</p>
+        <p class="muted">Aucun creneau disponible.</p>
       }
     </div>
     <div class="summary-box">

@@ -139,13 +139,13 @@
       </button>
     </form>
 
-    @for (document of documents; track document) {
-    <div class="doc-row">
-      <span class="file-icon">PDF</span>
-      <strong>{{ document }}</strong>
-    </div>
-    } @empty {
-    <p class="muted">Aucun fichier attaché.</p>
+@for (doc of documents; track doc.url) {
+      <div class="doc-row">
+        <span class="file-icon">Fichier</span>
+        <a [href]="'https://localhost:8443' + doc.url" target="_blank">
+          <strong>{{ doc.name }}</strong>
+        </a>
+      </div>
     }
   </aside>
 </section>

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef } from '@angular/core'; // <-- 1. Import ChangeDetectorRef
+import { Component, ChangeDetectorRef, OnInit } from '@angular/core'; // <-- 1. Import OnInit
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -9,7 +9,7 @@ import { AuthService } from '../../services/auth.service';
   imports: [FormsModule],
   templateUrl: './login.html',
 })
-export class Login {
+export class Login implements OnInit { // <-- 2. Add implements OnInit
   email = '';
   password = '';
   fullName = '';
@@ -23,8 +23,26 @@ export class Login {
     private readonly authService: AuthService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
-    private cdr: ChangeDetectorRef // <-- 2. Inject it into the constructor
+    private cdr: ChangeDetectorRef
   ) {}
+
+  // --- 3. ADD THIS ENTIRE METHOD TO CATCH THE GOOGLE TOKEN ---
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      const token = params['token'];
+      
+      if (token) {
+        console.log("Token JWT reçu de Google !");
+        
+        // Save the token. Make sure the key ('token') matches what your AuthService/Interceptor expects!
+        localStorage.setItem('token', token); 
+        
+        // Force the UI to update and navigate securely to the profile
+        this.cdr.detectChanges();
+        void this.router.navigateByUrl('/profile');
+      }
+    });
+  }
 
   submit(): void {
     this.error = '';
@@ -42,7 +60,7 @@ export class Login {
     request.subscribe({
       next: () => {
         this.loading = false;
-        this.cdr.detectChanges(); // <-- Wake up Angular
+        this.cdr.detectChanges(); 
         void this.router.navigateByUrl(this.route.snapshot.queryParamMap.get('returnUrl') ?? '/profile');
       },
       error: (err) => {
@@ -55,8 +73,12 @@ export class Login {
             this.error = 'Erreur serveur. Vérifiez que le backend est démarré.';
         }
         
-        this.cdr.detectChanges(); // <-- 3. FORCE the HTML to redraw and show the error!
+        this.cdr.detectChanges(); 
       },
     });
+  }
+
+  loginWithGoogle(): void {
+    window.location.href = 'https://localhost:8443/oauth2/authorization/google';
   }
 }

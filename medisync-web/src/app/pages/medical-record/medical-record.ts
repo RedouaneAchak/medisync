@@ -21,9 +21,9 @@ interface ConsultationRow {
 })
 export class MedicalRecord implements OnInit {
   consultations: ConsultationRow[] = [];
-  documents: string[] = [];
+  documents: { name: string, url: string }[] = [];
   editingId: string | null = null;
-  
+
   // Forms
   consultationForm = {
     patientId: 0,
@@ -31,7 +31,7 @@ export class MedicalRecord implements OnInit {
     observation: '',
     prescriptionsText: '',
   };
-  
+
   // Updated Document Form for physical files
   selectedFile: File | null = null;
   documentForm = {
@@ -54,7 +54,7 @@ export class MedicalRecord implements OnInit {
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
     private readonly cdr: ChangeDetectorRef // Prevents the UI sleep bug!
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     const user = this.authService.currentUser();
@@ -120,9 +120,9 @@ export class MedicalRecord implements OnInit {
 
     const request = this.editingId
       ? this.api.updateConsultation(this.editingId, {
-          observation: payload.observation,
-          prescriptions: payload.prescriptions,
-        })
+        observation: payload.observation,
+        prescriptions: payload.prescriptions,
+      })
       : this.api.createConsultation(payload);
 
     request.pipe(
@@ -136,7 +136,7 @@ export class MedicalRecord implements OnInit {
         this.consultations = this.editingId
           ? this.consultations.map((item) => (item.id === row.id ? row : item))
           : [row, ...this.consultations];
-        
+
         this.formSuccess = this.editingId ? 'Consultation mise à jour.' : 'Consultation créée avec succès.';
         this.editingId = null;
         this.consultationForm.observation = '';
@@ -162,13 +162,13 @@ export class MedicalRecord implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll back to form
   }
 
-// Triggered when the user selects a file from their OS window
+  // Triggered when the user selects a file from their OS window
   onFileSelected(event: any): void {
     const file = event.target.files[0];
-    
+
     if (file) {
       // 50 MB in bytes (50 * 1024 * 1024)
-      const MAX_SIZE_BYTES = 52428800; 
+      const MAX_SIZE_BYTES = 52428800;
 
       if (file.size > MAX_SIZE_BYTES) {
         this.docError = `Le fichier est trop volumineux (${(file.size / 1048576).toFixed(1)} MB). La taille maximale est de 50 MB.`;
@@ -185,9 +185,9 @@ export class MedicalRecord implements OnInit {
   addDocument(): void {
     this.docError = '';
     this.docSuccess = '';
-    
+
     const user = this.authService.currentUser();
-    
+
     // Validate that a physical file is actually selected
     if (!user || !this.selectedFile) {
       this.docError = 'Veuillez sélectionner un fichier sur votre ordinateur.';
@@ -205,7 +205,7 @@ export class MedicalRecord implements OnInit {
     const formData = new FormData();
     formData.append('file', this.selectedFile);
     formData.append('fileType', this.documentForm.fileType);
-    
+
     if (user.role === 'PATIENT' || user.role === 'ADMIN') {
       formData.append('doctorId', String(this.consultationForm.doctorId));
     }
@@ -235,10 +235,14 @@ export class MedicalRecord implements OnInit {
         } else {
           // General patient document fallback
           if (this.selectedFile) {
-             this.documents.unshift(this.selectedFile.name);
+            // FIX: We now push an object with both 'name' and 'url' instead of just a string
+            this.documents.unshift({
+              name: this.selectedFile.name,
+              url: response?.fileUrl ? String(response.fileUrl) : '#'
+            });
           }
         }
-        
+
         // Reset the file input
         this.selectedFile = null;
         this.docSuccess = 'Fichier uploadé avec succès.';
@@ -276,12 +280,16 @@ export class MedicalRecord implements OnInit {
 
   private refreshDocuments(): void {
     const backendDocuments = this.consultations.flatMap((consultation) =>
-      consultation.files.map((file) => String(file['fileName'] ?? file['name'] ?? 'Document médical')),
+      consultation.files.map((file) => ({
+        name: String(file['fileName'] ?? 'Document médical'),
+        // Add the base backend URL if needed, e.g. http://localhost:8080
+        url: String(file['fileUrl'] ?? '#')
+      }))
     );
+
     if (backendDocuments.length) {
       this.documents = backendDocuments;
     }
-
     const firstConsultation = this.consultations[0];
     if (firstConsultation && !this.documentForm.consultationId) {
       this.documentForm.consultationId = firstConsultation.id;
