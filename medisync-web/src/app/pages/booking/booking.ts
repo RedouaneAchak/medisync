@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize, timeout } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
@@ -16,10 +16,11 @@ interface DoctorOption {
   imports: [FormsModule],
   templateUrl: './booking.html',
 })
-export class Booking {
+export class Booking implements OnInit {
   doctors: DoctorOption[] = [];
   rooms: BackendRoom[] = [];
   patients: BackendPatient[] = [];
+  
   selectedDoctorId = 0;
   selectedRoomId = 0;
   selectedPatientId = 0;
@@ -28,18 +29,24 @@ export class Booking {
   motif = 'Suivi';
   description = '';
   forSomeoneElse = false;
-  loading = false;
+  
+  saving = false; // Controls the submit button exactly like Profile
   loadingDoctors = false;
   loadingRooms = false;
-  message = '';
-  messageType: 'success' | 'error' | 'info' = 'info';
+  
+  // Replaced the old message system with the strict Profile pattern
+  error = '';
+  success = '';
 
   slots = ['09:00', '09:30', '10:30', '11:30', '14:00', '15:30', '16:00'];
 
   constructor(
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
-  ) {
+    private readonly cdr: ChangeDetectorRef // Prevents the double-click UI bug!
+  ) {}
+
+  ngOnInit(): void {
     this.loadDoctors();
     this.loadRooms();
     this.loadPatientsForStaff();
@@ -50,26 +57,31 @@ export class Booking {
   }
 
   submit(): void {
+    // Reset messages when they click save
+    this.error = '';
+    this.success = '';
+
     const user = this.authService.currentUser();
     const roomId = this.selectedRoomId || this.rooms[0]?.id;
     const patientId = user?.role === 'PATIENT' ? user.userId : this.selectedPatientId;
+    
     if (!user || !roomId) {
-      this.setMessage('Connectez-vous et creez au moins une salle avant de reserver.', 'error');
+      this.error = 'Connectez-vous et créez au moins une salle avant de réserver.';
       return;
     }
 
     if (!this.selectedDoctorId) {
-      this.setMessage('Aucun medecin backend disponible pour reserver.', 'error');
+      this.error = 'Aucun médecin backend disponible pour réserver.';
       return;
     }
 
     if (!patientId) {
-      this.setMessage('Choisissez le patient concerne par le rendez-vous.', 'error');
+      this.error = 'Choisissez le patient concerné par le rendez-vous.';
       return;
     }
 
-    this.loading = true;
-    this.setMessage('Reservation en cours...', 'info');
+    this.saving = true; // Lock the button and start spinner
+
     this.api
       .createAppointment({
         patientId,
@@ -83,20 +95,26 @@ export class Booking {
       .pipe(
         timeout(7000),
         finalize(() => {
-          this.loading = false;
+          this.saving = false; // Always unlock the button
+          this.cdr.detectChanges(); // Force Angular to draw the result
         }),
       )
       .subscribe({
         next: (appointment) => {
-          this.setMessage(`Rendez-vous cree avec succes. Statut: ${appointment.status ?? 'PENDING'}.`, 'success');
+          this.success = `Rendez-vous créé avec succès. Statut: ${appointment.status ?? 'PENDING'}.`;
           this.refreshSlots();
         },
-        error: (error) => {
-          const message =
-            error.name === 'TimeoutError'
-              ? 'Reservation trop longue. Verifiez que le backend, PostgreSQL et MongoDB sont demarres.'
-              : 'Reservation impossible. Verifiez le patient, le medecin, la salle et le creneau.';
-          this.setMessage(message, 'error');
+        error: (err: any) => {
+          // Bulletproof error extraction exactly like Profile
+          if (err.name === 'TimeoutError') {
+            this.error = 'Réservation trop longue. Vérifiez que le backend est démarré.';
+          } else if (err.error && typeof err.error === 'string') {
+            this.error = err.error;
+          } else if (err.error?.message) {
+            this.error = err.error.message;
+          } else {
+            this.error = 'Réservation impossible. Ce créneau ou cette salle est peut-être déjà pris.';
+          }
         },
       });
   }
@@ -111,6 +129,7 @@ export class Booking {
       return;
     }
 
+    this.error = '';
     this.api.getAvailableSlots(this.selectedDoctorId, this.selectedDate).subscribe({
       next: (slots) => {
         this.slots = slots.map((slot) => slot.slice(11, 16));
@@ -118,13 +137,15 @@ export class Booking {
           this.selectedTime = this.slots[0];
         } else {
           this.selectedTime = '';
-          this.setMessage('Aucun creneau disponible pour ce medecin a cette date.', 'info');
+          this.error = 'Aucun créneau disponible pour ce médecin à cette date.';
         }
+        this.cdr.detectChanges();
       },
       error: () => {
         this.slots = [];
         this.selectedTime = '';
-        this.setMessage('Impossible de charger les creneaux disponibles.', 'error');
+        this.error = 'Impossible de charger les créneaux disponibles.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -134,17 +155,20 @@ export class Booking {
     this.api.getDoctors().pipe(finalize(() => (this.loadingDoctors = false))).subscribe({
       next: (items) => {
         if (!items.length) {
-          this.setMessage('Aucun medecin trouve. Ajoutez des lignes dans doctors avec id egal au user DOCTOR.', 'error');
+          this.error = 'Aucun médecin trouvé.';
+          this.cdr.detectChanges();
           return;
         }
         this.doctors = items.map((doctor) => this.toDoctorOption(doctor));
         this.selectedDoctorId = this.doctors[0].id;
         this.refreshSlots();
+        this.cdr.detectChanges();
       },
       error: () => {
         this.doctors = [];
         this.selectedDoctorId = 0;
-        this.setMessage('Impossible de charger les medecins. Verifiez la table doctors et la liaison avec users.', 'error');
+        this.error = 'Impossible de charger les médecins.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -156,13 +180,15 @@ export class Booking {
         this.rooms = rooms;
         this.selectedRoomId = rooms[0]?.id ?? 0;
         if (!rooms.length) {
-          this.setMessage('Aucune salle backend disponible pour reserver.', 'error');
+          this.error = 'Aucune salle backend disponible pour réserver.';
         }
+        this.cdr.detectChanges();
       },
       error: () => {
         this.rooms = [];
         this.selectedRoomId = 0;
-        this.setMessage('Impossible de charger les salles depuis le backend.', 'error');
+        this.error = 'Impossible de charger les salles depuis le backend.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -177,11 +203,13 @@ export class Booking {
         this.patients = patients;
         this.selectedPatientId = patients[0]?.id ?? 0;
         if (!patients.length) {
-          this.setMessage('Aucun patient disponible pour le secretariat.', 'error');
+          this.error = 'Aucun patient disponible pour le secrétariat.';
         }
+        this.cdr.detectChanges();
       },
       error: () => {
-        this.setMessage('Impossible de charger la liste des patients.', 'error');
+        this.error = 'Impossible de charger la liste des patients.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -192,13 +220,8 @@ export class Booking {
     return {
       id: doctor.id,
       name: `${firstname} ${lastname}`.startsWith('Dr.') ? `${firstname} ${lastname}` : `Dr. ${firstname} ${lastname}`,
-      specialty: doctor.specialty ?? 'Medecine generale',
+      specialty: doctor.specialty ?? 'Médecine générale',
       price: doctor.standardConsultationRate ?? 300,
     };
-  }
-
-  private setMessage(message: string, type: 'success' | 'error' | 'info'): void {
-    this.message = message;
-    this.messageType = type;
   }
 }
