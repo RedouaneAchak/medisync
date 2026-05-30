@@ -3,9 +3,16 @@ package com.medisync.controller;
 import com.medisync.model.nosql.Consultation;
 import com.medisync.service.ConsultationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,12 +21,12 @@ import java.util.Map;
  * Routes : /api/consultations/**
  *
  * Accès :
- *  - Médecin : créer, modifier, ajouter des fichiers
- *  - Patient  : lire son historique (via PatientController /medical-history)
- *  - Admin    : accès complet
+ * - Médecin : créer, modifier, ajouter des fichiers
+ * - Patient  : lire son historique (via PatientController /medical-history)
+ * - Admin    : accès complet
  */
 @RestController
-@RequestMapping("/api/consultations")
+@RequestMapping("/api/consultations") // <-- Note: Plural "consultations"
 @RequiredArgsConstructor
 public class ConsultationController {
 
@@ -30,15 +37,6 @@ public class ConsultationController {
     /**
      * POST /api/consultations
      * Le médecin rédige le compte rendu après une consultation.
-     * Crée un document MongoDB avec observation et prescriptions.
-     *
-     * Body JSON :
-     * {
-     *   "patientId": 1,
-     *   "doctorId": 2,
-     *   "observation": "Patient présente une hypertension légère.",
-     *   "prescriptions": ["Amlodipine 5mg - 1x/jour", "Contrôle tensionnel à J+30"]
-     * }
      */
     @PostMapping
     public ResponseEntity<Consultation> create(
@@ -58,7 +56,6 @@ public class ConsultationController {
     /**
      * PUT /api/consultations/{id}
      * Met à jour les notes ou prescriptions d'une consultation existante.
-     * Null-safe : seuls les champs fournis sont modifiés.
      */
     @PutMapping("/{id}")
     public ResponseEntity<Consultation> update(
@@ -73,27 +70,55 @@ public class ConsultationController {
         );
     }
 
-    // ── Ajout de fichier au dossier ───────────────────────────────────────────
+    // ── Ajout de fichier au dossier (UPLOAD PHYSIQUE) ─────────────────────────
 
     /**
-     * POST /api/consultations/{id}/files
-     * Ajoute un document médical (imagerie, résultat labo) à une consultation.
-     *
-     * Body JSON :
-     * { "fileName": "radio_thorax.dcm", "fileType": "DICOM", "fileUrl": "/files/...", "uploadedAt": "..." }
+     * POST /api/consultations/{id}/upload
+     * Reçoit un fichier physique (PDF, Image, etc.) depuis Angular.
      */
-    @PostMapping("/{id}/files")
-    public ResponseEntity<Consultation> addFile(
+@PostMapping(value = "/{id}/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Consultation> uploadFile(
             @PathVariable String id,
-            @RequestBody Map<String, Object> fileMetadata) {
-        return ResponseEntity.ok(consultationService.addFile(id, fileMetadata));
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("fileType") String fileType) {
+
+        if (file.isEmpty()) {
+            throw new RuntimeException("Le fichier sélectionné est vide.");
+        }
+
+        try {
+            // 1. Create an "uploads" folder on your computer if it doesn't exist yet
+            Path uploadDirectory = Paths.get("uploads");
+            if (!Files.exists(uploadDirectory)) {
+                Files.createDirectories(uploadDirectory);
+            }
+
+            // 2. Clean the file name and save the physical file to the folder
+            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            Path filePath = uploadDirectory.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // 3. Generate the metadata for MongoDB
+            Map<String, Object> fileMetadata = new HashMap<>();
+            fileMetadata.put("fileName", file.getOriginalFilename());
+            fileMetadata.put("fileType", fileType);
+            // This URL tells Angular exactly where to find the file later
+            fileMetadata.put("fileUrl", "/uploads/" + fileName); 
+            fileMetadata.put("uploadedAt", LocalDateTime.now().toString());
+            fileMetadata.put("size", file.getSize());
+
+            // 4. Save the metadata text to MongoDB
+            return ResponseEntity.ok(consultationService.addFile(id, fileMetadata));
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la sauvegarde du fichier : " + e.getMessage());
+        }
     }
 
     // ── Lecture ───────────────────────────────────────────────────────────────
 
     /**
      * GET /api/consultations/{id}
-     * Récupère une consultation par son ID MongoDB.
      */
     @GetMapping("/{id}")
     public ResponseEntity<Consultation> getById(@PathVariable String id) {
@@ -102,8 +127,6 @@ public class ConsultationController {
 
     /**
      * GET /api/consultations/patient/{patientId}
-     * Historique complet des consultations d'un patient.
-     * Utilisé par le médecin pendant la consultation pour voir les antécédents.
      */
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<List<Consultation>> getByPatient(
@@ -113,7 +136,6 @@ public class ConsultationController {
 
     /**
      * GET /api/consultations/doctor/{doctorId}
-     * Toutes les consultations réalisées par un médecin.
      */
     @GetMapping("/doctor/{doctorId}")
     public ResponseEntity<List<Consultation>> getByDoctor(

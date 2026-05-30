@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { BackendConsultation, MedisyncApiService } from '../../services/medisync-api.service';
 
@@ -18,37 +19,56 @@ interface ConsultationRow {
   imports: [FormsModule],
   templateUrl: './medical-record.html',
 })
-export class MedicalRecord {
+export class MedicalRecord implements OnInit {
   consultations: ConsultationRow[] = [];
   documents: string[] = [];
-  error = '';
-  message = '';
-  documentMessage = '';
   editingId: string | null = null;
+  
+  // Forms
   consultationForm = {
     patientId: 0,
     doctorId: 0,
     observation: '',
     prescriptionsText: '',
   };
+  
+  // Updated Document Form for physical files
+  selectedFile: File | null = null;
   documentForm = {
     consultationId: '',
-    fileName: '',
     fileType: 'PDF',
-    fileUrl: '',
   };
+
+  // State Management (The "Bulletproof" Pattern)
+  loadingData = false;
+  savingConsultation = false;
+  savingDocument = false;
+
+  // Split messages so the two forms don't overwrite each other
+  formError = '';
+  formSuccess = '';
+  docError = '';
+  docSuccess = '';
 
   constructor(
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
-  ) {
+    private readonly cdr: ChangeDetectorRef // Prevents the UI sleep bug!
+  ) {}
+
+  ngOnInit(): void {
     const user = this.authService.currentUser();
-    if (!user) {
-      return;
-    }
+    if (!user) return;
 
     this.consultationForm.patientId = user.role === 'PATIENT' ? user.userId : 0;
     this.consultationForm.doctorId = user.role === 'DOCTOR' ? user.userId : 0;
+
+    this.loadMedicalHistory(user);
+  }
+
+  private loadMedicalHistory(user: any): void {
+    this.loadingData = true;
+    this.formError = '';
 
     const request =
       user.role === 'DOCTOR'
@@ -57,7 +77,12 @@ export class MedicalRecord {
           ? this.api.getPatientMedicalHistory(user.userId)
           : this.api.getConsultationsForPatient(user.userId);
 
-    request.subscribe({
+    request.pipe(
+      finalize(() => {
+        this.loadingData = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
       next: (items) => {
         this.consultations = items.map((consultation) => this.toConsultationRow(consultation));
         this.refreshDocuments();
@@ -65,7 +90,7 @@ export class MedicalRecord {
       error: () => {
         this.consultations = [];
         this.documents = [];
-        this.error = 'Aucune consultation backend chargee pour ce patient.';
+        this.formError = 'Aucune consultation backend chargée pour ce patient.';
       },
     });
   }
@@ -76,6 +101,9 @@ export class MedicalRecord {
   }
 
   saveConsultation(): void {
+    this.formError = '';
+    this.formSuccess = '';
+
     const payload = {
       patientId: this.consultationForm.patientId,
       doctorId: this.consultationForm.doctorId,
@@ -84,9 +112,11 @@ export class MedicalRecord {
     };
 
     if (!payload.patientId || !payload.doctorId) {
-      this.message = 'Renseignez le patient et le medecin.';
+      this.formError = 'Renseignez le patient et le médecin.';
       return;
     }
+
+    this.savingConsultation = true;
 
     const request = this.editingId
       ? this.api.updateConsultation(this.editingId, {
@@ -95,19 +125,32 @@ export class MedicalRecord {
         })
       : this.api.createConsultation(payload);
 
-    request.subscribe({
+    request.pipe(
+      finalize(() => {
+        this.savingConsultation = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
       next: (consultation) => {
         const row = this.toConsultationRow(consultation);
         this.consultations = this.editingId
           ? this.consultations.map((item) => (item.id === row.id ? row : item))
           : [row, ...this.consultations];
-        this.message = this.editingId ? 'Consultation mise a jour.' : 'Consultation creee.';
+        
+        this.formSuccess = this.editingId ? 'Consultation mise à jour.' : 'Consultation créée avec succès.';
         this.editingId = null;
         this.consultationForm.observation = '';
         this.consultationForm.prescriptionsText = '';
+        this.refreshDocuments();
       },
-      error: () => {
-        this.message = 'Enregistrement impossible. Verifiez vos droits et les identifiants.';
+      error: (err: any) => {
+        if (err.error && typeof err.error === 'string') {
+          this.formError = err.error;
+        } else if (err.error?.message) {
+          this.formError = err.error.message;
+        } else {
+          this.formError = 'Enregistrement impossible. Vérifiez vos droits et les identifiants.';
+        }
       },
     });
   }
@@ -116,48 +159,98 @@ export class MedicalRecord {
     this.editingId = consultation.id;
     this.consultationForm.observation = consultation.notes;
     this.consultationForm.prescriptionsText = consultation.prescriptions.join('\n');
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll back to form
   }
 
-  addDocument(): void {
-    const user = this.authService.currentUser();
-    this.documentMessage = '';
+// Triggered when the user selects a file from their OS window
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    
+    if (file) {
+      // 50 MB in bytes (50 * 1024 * 1024)
+      const MAX_SIZE_BYTES = 52428800; 
 
-    if (!user || !this.documentForm.fileName) {
-      this.documentMessage = 'Renseignez au minimum le nom du fichier.';
+      if (file.size > MAX_SIZE_BYTES) {
+        this.docError = `Le fichier est trop volumineux (${(file.size / 1048576).toFixed(1)} MB). La taille maximale est de 50 MB.`;
+        this.selectedFile = null; // Reject the file
+        return;
+      }
+
+      this.selectedFile = file;
+      this.docError = ''; // Clear errors if it passes the size check
+    }
+  }
+
+  // Completely rewritten for physical file uploads via FormData
+  addDocument(): void {
+    this.docError = '';
+    this.docSuccess = '';
+    
+    const user = this.authService.currentUser();
+    
+    // Validate that a physical file is actually selected
+    if (!user || !this.selectedFile) {
+      this.docError = 'Veuillez sélectionner un fichier sur votre ordinateur.';
       return;
     }
-
-    const metadata = {
-      fileName: this.documentForm.fileName,
-      fileType: this.documentForm.fileType,
-      fileUrl: this.documentForm.fileUrl || this.documentForm.fileName,
-      uploadedAt: new Date().toISOString(),
-    };
-
-    const request =
-      user.role === 'DOCTOR'
-        ? this.api.addConsultationFile(this.documentForm.consultationId, metadata)
-        : this.api.addPatientDocument(this.consultationForm.patientId || user.userId, metadata, this.consultationForm.doctorId);
 
     if (user.role === 'DOCTOR' && !this.documentForm.consultationId) {
-      this.documentMessage = 'Choisissez une consultation avant d ajouter le fichier.';
+      this.docError = 'Choisissez une consultation avant d\'ajouter le fichier.';
       return;
     }
 
-    request.subscribe({
-      next: (consultation) => {
-        const row = this.toConsultationRow(consultation);
-        const exists = this.consultations.some((item) => item.id === row.id);
-        this.consultations = exists
-          ? this.consultations.map((item) => (item.id === row.id ? row : item))
-          : [row, ...this.consultations];
-        this.refreshDocuments();
-        this.documentForm.fileName = '';
-        this.documentForm.fileUrl = '';
-        this.documentMessage = 'Document ajoute au dossier.';
+    this.savingDocument = true;
+
+    // Package the physical file and metadata into FormData
+    const formData = new FormData();
+    formData.append('file', this.selectedFile);
+    formData.append('fileType', this.documentForm.fileType);
+    
+    if (user.role === 'PATIENT' || user.role === 'ADMIN') {
+      formData.append('doctorId', String(this.consultationForm.doctorId));
+    }
+
+    // Call the new FormData methods in your API service
+    // (Ensure you added uploadConsultationFile and uploadPatientDocument to medisync-api.service.ts)
+    const request =
+      user.role === 'DOCTOR'
+        ? (this.api as any).uploadConsultationFile(this.documentForm.consultationId, formData)
+        : (this.api as any).uploadPatientDocument(this.consultationForm.patientId || user.userId, formData);
+
+    request.pipe(
+      finalize(() => {
+        this.savingDocument = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (response: any) => {
+        // If it returns a consultation, update the table
+        if (response && response.id) {
+          const row = this.toConsultationRow(response as BackendConsultation);
+          const exists = this.consultations.some((item) => item.id === row.id);
+          this.consultations = exists
+            ? this.consultations.map((item) => (item.id === row.id ? row : item))
+            : [row, ...this.consultations];
+          this.refreshDocuments();
+        } else {
+          // General patient document fallback
+          if (this.selectedFile) {
+             this.documents.unshift(this.selectedFile.name);
+          }
+        }
+        
+        // Reset the file input
+        this.selectedFile = null;
+        this.docSuccess = 'Fichier uploadé avec succès.';
       },
-      error: () => {
-        this.documentMessage = 'Ajout du document impossible. Verifiez vos droits et la consultation.';
+      error: (err: any) => {
+        if (err.error && typeof err.error === 'string') {
+          this.docError = err.error;
+        } else if (err.error?.message) {
+          this.docError = err.error.message;
+        } else {
+          this.docError = 'Upload du document impossible. Vérifiez la taille du fichier.';
+        }
       },
     });
   }
@@ -172,8 +265,8 @@ export class MedicalRecord {
   private toConsultationRow(consultation: BackendConsultation): ConsultationRow {
     return {
       id: consultation.id,
-      date: '-',
-      doctor: consultation.doctorId ? `Medecin #${consultation.doctorId}` : 'Medecin',
+      date: consultation.createdAt ? consultation.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      doctor: consultation.doctorId ? `Médecin #${consultation.doctorId}` : 'Médecin',
       motif: 'Consultation',
       notes: consultation.observation ?? '',
       prescriptions: consultation.prescriptions ?? [],
@@ -183,13 +276,15 @@ export class MedicalRecord {
 
   private refreshDocuments(): void {
     const backendDocuments = this.consultations.flatMap((consultation) =>
-      consultation.files.map((file) => String(file['fileName'] ?? file['name'] ?? 'Document medical')),
+      consultation.files.map((file) => String(file['fileName'] ?? file['name'] ?? 'Document médical')),
     );
     if (backendDocuments.length) {
       this.documents = backendDocuments;
     }
 
     const firstConsultation = this.consultations[0];
-    this.documentForm.consultationId = firstConsultation?.id ?? '';
+    if (firstConsultation && !this.documentForm.consultationId) {
+      this.documentForm.consultationId = firstConsultation.id;
+    }
   }
 }

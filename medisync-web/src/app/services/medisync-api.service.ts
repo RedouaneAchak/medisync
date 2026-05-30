@@ -66,11 +66,13 @@ export interface BackendConsultation {
   observation?: string;
   prescriptions?: string[];
   files?: Record<string, unknown>[];
+  createdAt?: string;
 }
+
 
 @Injectable({ providedIn: 'root' })
 export class MedisyncApiService {
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly http: HttpClient) { }
 
   updatePatientProfile(patientId: number, body: Partial<BackendPatient>) {
     return this.http.put<BackendPatient>(`/api/patient/${patientId}`, body);
@@ -232,6 +234,16 @@ export class MedisyncApiService {
 
   addConsultationFile(id: string, body: Record<string, unknown>) {
     return this.http.post<BackendConsultation>(`/api/consultations/${id}/files`, body);
+  }
+  // --- ADD THESE TO medisync-api.service.ts ---
+
+  uploadConsultationFile(consultationId: string, formData: FormData) {
+    // Angular's HttpClient automatically sets the correct 'multipart/form-data' boundary
+    return this.http.post<BackendConsultation>(`/api/consultations/${consultationId}/upload`, formData);
+  }
+
+  uploadPatientDocument(patientId: number, formData: FormData) {
+    return this.http.post<any>(`/api/patient/${patientId}/upload`, formData);
   }
 
   addPatientDocument(patientId: number, body: Record<string, unknown>, doctorId = 0) {

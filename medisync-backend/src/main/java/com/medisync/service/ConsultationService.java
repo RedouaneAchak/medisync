@@ -31,6 +31,9 @@ public class ConsultationService {
         c.setObservation(observation);
         c.setPrescriptions(prescriptions != null ? prescriptions : new ArrayList<>());
         c.setFiles(new ArrayList<>());
+        
+        // --- THE FIX: Stamp the exact creation time! ---
+        c.setCreatedAt(LocalDateTime.now());
 
         Consultation saved = consultationRepository.save(c);
         logAudit(doctorId, "CREATE_CONSULTATION", "Patient#" + patientId);
@@ -73,6 +76,9 @@ public class ConsultationService {
     }
 
     public List<Consultation> getByDoctor(Long doctorId) {
+        // Note: For production, it is highly recommended to create a custom 
+        // findByDoctorId(Long doctorId) method in your ConsultationRepository 
+        // instead of using findAll() which pulls the entire database into memory.
         return consultationRepository.findAll().stream().filter(c -> doctorId.equals(c.getDoctorId())).toList();
     }
 
