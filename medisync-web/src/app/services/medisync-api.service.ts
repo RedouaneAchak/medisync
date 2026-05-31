@@ -220,6 +220,14 @@ export class MedisyncApiService {
     return this.http.get<BackendConsultation[]>(`/api/patient/${patientId}/medical-history`);
   }
 
+  getConsultations() {
+    return this.http.get<any[]>('http://localhost:8443/api/consultations');
+  }
+
+  getAuditLogs() {
+    return this.http.get<any[]>('http://localhost:8443/api/admin/audit-logs');
+  }
+
   getConsultationsForDoctor(doctorId: number) {
     return this.http.get<BackendConsultation[]>(`/api/consultations/doctor/${doctorId}`);
   }

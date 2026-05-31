@@ -1,6 +1,7 @@
 package com.medisync.controller;
 
 import com.medisync.model.nosql.Consultation;
+import com.medisync.repository.nosql.ConsultationRepository;
 import com.medisync.service.ConsultationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -29,15 +30,19 @@ import java.util.Map;
 @RequestMapping("/api/consultations") // <-- Note: Plural "consultations"
 @RequiredArgsConstructor
 public class ConsultationController {
-
+    private final ConsultationRepository repository;
     private final ConsultationService consultationService;
-
+    
     // ── Création ──────────────────────────────────────────────────────────────
 
     /**
      * POST /api/consultations
      * Le médecin rédige le compte rendu après une consultation.
      */
+    @GetMapping
+    public List<Consultation> getAllConsultations() {
+        return repository.findAll();
+    }
     @PostMapping
     public ResponseEntity<Consultation> create(
             @RequestBody ConsultationRequest request) {

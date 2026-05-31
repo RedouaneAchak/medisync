@@ -1,0 +1,47 @@
+<section class="page-title">
+  <span class="eyebrow">Administration Système</span>
+  <h1>Logs d'audit</h1>
+  <p>Traçabilité complète des actions, de la sécurité et des événements système.</p>
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+    <h2 style="margin-bottom: 1.5rem;">Historique des événements</h2>
+    
+    @if (error) {
+      <div style="padding: 1rem; background: #fee2e2; border-radius: 8px; color: #991b1b; margin-bottom: 1rem;">
+        {{ error }}
+      </div>
+    }
+
+    <div class="table-list" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+      @if (loading) {
+        <div style="padding: 2rem; text-align: center; color: #64748b; background: white;">
+          Synchronisation avec le serveur...
+        </div>
+      } @else if (logs.length === 0) {
+        <div style="padding: 3rem 1rem; text-align: center; background: #f8fafc;">
+          <p style="color: #64748b; margin: 0;">Aucun événement enregistré dans le système.</p>
+        </div>
+      } @else {
+        @for (log of logs; track log.id) {
+          <div class="list-row" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: white; border-bottom: 1px solid #f1f5f9;">
+            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+              <strong style="color: #334155;">{{ log.action }}</strong>
+              <span style="color: #94a3b8; font-size: 0.85rem; font-family: monospace;">
+                {{ log.userEmail ?? 'Système' }} — {{ log.timestamp | date:'medium' }}
+              </span>
+            </div>
+            
+            <span class="badge" 
+                  [style.background]="log.level === 'ERROR' ? '#fee2e2' : log.level === 'WARNING' ? '#fef3c7' : '#e0f2fe'"
+                  [style.color]="log.level === 'ERROR' ? '#991b1b' : log.level === 'WARNING' ? '#92400e' : '#075985'"
+                  style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">
+              {{ log.level ?? 'INFO' }}
+            </span>
+          </div>
+        }
+      }
+    </div>
+  </article>
+</section>

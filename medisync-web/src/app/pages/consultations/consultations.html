@@ -1,0 +1,49 @@
+<section class="page-title">
+  <span class="eyebrow">Espace Clinique</span>
+  <h1>Consultations</h1>
+  <p>Gestion des dossiers de consultation, historique et notes médicales.</p>
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h2 style="margin: 0;">Consultations enregistrées</h2>
+      <button class="btn primary">Nouvelle consultation</button>
+    </div>
+
+    @if (error) {
+      <div class="alert tone-red" style="padding: 1rem; background: #fee2e2; border-radius: 8px; color: #991b1b; margin-bottom: 1rem;">
+        {{ error }}
+      </div>
+    }
+
+    <div class="table-list">
+      @if (loading) {
+        <div style="padding: 2rem; text-align: center; color: #64748b;">
+          Chargement des données depuis le serveur...
+        </div>
+      } @else if (consultations.length === 0) {
+        <div style="padding: 3rem 1rem; text-align: center; background: #f8fafc; border-radius: 8px;">
+          <p style="color: #64748b; margin: 0; font-size: 1.1rem;">Aucune consultation trouvée.</p>
+        </div>
+      } @else {
+        @for (consultation of consultations; track consultation.id) {
+          <div class="list-row" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+              <strong style="font-size: 1.1rem; color: #0f172a;">Patient: {{ consultation.patient?.firstName }} {{ consultation.patient?.lastName }}</strong>
+              <span style="color: #64748b; font-size: 0.9rem;">
+                Motif: {{ consultation.reason ?? 'Non spécifié' }} | Date: {{ consultation.date | date:'short' }}
+              </span>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+              <span class="badge" [class.tone-blue]="consultation.status === 'EN ATTENTE'" [class.tone-green]="consultation.status === 'TERMINÉE'">
+                {{ consultation.status ?? 'EN COURS' }}
+              </span>
+              <button class="btn secondary" type="button">Ouvrir</button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </article>
+</section>
