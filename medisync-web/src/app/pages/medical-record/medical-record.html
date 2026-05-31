@@ -1,0 +1,168 @@
+<section class="page-title">
+  <span class="eyebrow">Dossier patient</span>
+  <h1>Dossier médical</h1>
+  <p>Consultations, observations, ordonnances électroniques et fichiers
+    médicaux.</p>
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+
+    @if (formError) {
+    <p class="muted tone-red">{{ formError }}</p>
+    }
+    @if (formSuccess) {
+    <p class="muted tone-green">{{ formSuccess }}</p>
+    }
+
+    @if (loadingData) {
+    <p class="muted">Chargement du dossier médical en cours...</p>
+    }
+
+    @if (isDoctorView && doctorPatients.length) {
+    <div class="form-panel" style="margin-bottom: 1rem;">
+      <label>
+        Patient du planning
+        <select [(ngModel)]="selectedDoctorPatientId" name="selectedDoctorPatientId" (ngModelChange)="onDoctorPatientChange()">
+          @for (patient of doctorPatients; track patient.id) {
+          <option [ngValue]="patient.id">{{ patient.name }} - {{ patient.appointmentLabel }}</option>
+          }
+        </select>
+      </label>
+    </div>
+    }
+
+    @if (canManageConsultations && !loadingData) {
+    <form class="form-panel" (ngSubmit)="saveConsultation()">
+      @if (!isDoctorView) {
+      <label>
+        ID patient
+        <input [(ngModel)]="consultationForm.patientId" name="patientId"
+          type="number" required />
+      </label>
+      }
+      @if (!isDoctorView) {
+      <label>
+        ID médecin
+        <input [(ngModel)]="consultationForm.doctorId" name="doctorId"
+          type="number" required />
+      </label>
+      }
+      <label>
+        Observation
+        <textarea [(ngModel)]="consultationForm.observation" name="observation"
+          rows="4" required></textarea>
+      </label>
+      <label>
+        Prescriptions
+        <textarea [(ngModel)]="consultationForm.prescriptionsText"
+          name="prescriptions" rows="4"
+          placeholder="Une prescription par ligne"></textarea>
+      </label>
+
+      <button class="btn primary" type="submit" [disabled]="savingConsultation">
+        @if (savingConsultation) {
+        Enregistrement...
+        } @else {
+        {{ editingId ? 'Mettre à jour la consultation' :
+        'Ajouter la consultation' }}
+        }
+      </button>
+    </form>
+    }
+
+    @for (consultation of consultations; track consultation.id) {
+    <div class="record-item">
+      <div>
+        <strong>{{ consultation.date }} · {{ consultation.doctor }}</strong>
+        <span>{{ consultation.motif }}</span>
+        <p>{{ consultation.notes }}</p>
+      </div>
+      <div class="prescription-list">
+        @for (prescription of consultation.prescriptions; track prescription) {
+        <span>{{ prescription }}</span>
+        }
+      </div>
+      @if (canManageConsultations) {
+      <button type="button" class="btn small"
+        (click)="editConsultation(consultation)">Modifier</button>
+      }
+    </div>
+    } @empty {
+    @if (!loadingData) {
+    <p class="muted">Aucune consultation enregistrée pour le moment.</p>
+    }
+    }
+  </article>
+
+  <aside class="section-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Documents</span>
+        <h2>Fichiers</h2>
+      </div>
+    </div>
+    <form class="form-panel" (ngSubmit)="addDocument()">
+      @if (canManageConsultations) {
+      <label>
+        Consultation
+        <select [(ngModel)]="documentForm.consultationId" name="consultationId">
+          @for (consultation of consultations; track consultation.id) {
+          <option [ngValue]="consultation.id">{{ consultation.date }} - {{
+            consultation.doctor }}</option>
+          }
+        </select>
+      </label>
+      }
+
+      <label>
+        Type de document
+        <select [(ngModel)]="documentForm.fileType" name="fileType">
+          <option>PDF</option>
+          <option>IMAGE</option>
+          <option>DICOM</option>
+          <option>LAB</option>
+        </select>
+      </label>
+
+      <label>Fichier</label>
+
+      <input
+        type="file"
+        (change)="onFileSelected($event)"
+        accept=".pdf,.png,.jpg,.jpeg,.dcm"
+        #fileInput
+        style="display: none;" />
+
+      <button
+        type="button"
+        class="btn outline full"
+        style="margin-bottom: 1rem;"
+        (click)="fileInput.click()">
+        {{ selectedFile ? '📎 ' + selectedFile.name :
+        '📁 Parcourir mon ordinateur' }}
+      </button>
+
+      @if (docError) {
+      <p class="muted tone-red">{{ docError }}</p>
+      }
+      @if (docSuccess) {
+      <p class="muted tone-green">{{ docSuccess }}</p>
+      }
+
+      <button class="btn primary full" type="submit"
+        [disabled]="savingDocument || !selectedFile">
+        {{ savingDocument ? 'Upload en cours...' : 'Uploader le document' }}
+      </button>
+    </form>
+
+    @for (document of documents; track document) {
+    <div class="doc-row">
+      <span class="file-icon">PDF</span>
+      <strong>{{ document }}</strong>
+    </div>
+    } @empty {
+    <p class="muted">Aucun fichier attaché.</p>
+    }
+  </aside>
+</section>

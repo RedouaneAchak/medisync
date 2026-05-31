@@ -1,0 +1,21 @@
+<section class="page-title">
+  <span class="eyebrow">Actualites de la clinique</span>
+  <h1>Annonces</h1>
+  <p>
+    Retrouvez les informations importantes: horaires, prevention, travaux,
+    campagnes medicales et consignes pour les patients.
+  </p>
+</section>
+
+<section class="announcements-layout">
+  @for (announcement of announcements; track announcement.title) {
+    <article class="announcement-card">
+      <div>
+        <span class="badge" [class]="'tone-' + announcement.tone">{{ announcement.category }}</span>
+        <h2>{{ announcement.title }}</h2>
+        <p>{{ announcement.text }}</p>
+      </div>
+      <time>{{ announcement.date }}</time>
+    </article>
+  }
+</section>

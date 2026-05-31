@@ -1,0 +1,21 @@
+<section class="page-title">
+  <span class="eyebrow">Ressources</span>
+  <h1>Salles et equipements</h1>
+  <p>Visualisez les salles, leur materiel et leur affectation medicale.</p>
+</section>
+
+<section class="room-grid">
+  @if (error) {
+    <article class="room-card">
+      <p class="muted">{{ error }}</p>
+    </article>
+  }
+  @for (room of rooms; track room.number) {
+    <article class="room-card">
+      <span class="room-number">{{ room.number }}</span>
+      <h2>{{ room.equipment }}</h2>
+      <p>{{ room.doctor }}</p>
+      <span class="badge" [class]="room.status === 'Libre' ? 'tone-green' : 'tone-yellow'">{{ room.status }}</span>
+    </article>
+  }
+</section>

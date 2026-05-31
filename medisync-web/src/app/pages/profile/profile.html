@@ -1,0 +1,66 @@
+<section class="page-title">
+  <span class="eyebrow">Compte</span>
+  <h1>Profil et preferences</h1>
+  <p>Informations personnelles, securite et preferences de notification.</p>
+</section>
+
+<section class="booking-layout">
+  <form class="section-panel form-panel" (ngSubmit)="save()">
+
+    @if (loading) {
+      <p class="muted">Chargement du profil...</p>
+    }
+
+    @if (isPatient) {
+      <label>Prénom <input [(ngModel)]="firstName" name="firstName" /></label>
+      <label>Nom <input [(ngModel)]="lastName" name="lastName" /></label>
+      <label>Email <input [(ngModel)]="email" name="email" type="email" /></label>
+      <label>Téléphone <input [(ngModel)]="phone" name="phone" /></label>
+      <label>Numéro de sécurité social <input [(ngModel)]="socialSecurityNumber" name="socialSecurityNumber" /></label>
+      <label>Catégorie
+        <select [(ngModel)]="category" name="category">
+          <option>ADULT</option>
+          <option>MINOR</option>
+          <option>DEPENDENT</option>
+          <option>CORPORATE</option>
+        </select>
+      </label>
+      @if (needsGuardian) {
+        <label>ID tuteur
+          <input [(ngModel)]="guardianId" name="guardianId" type="number" min="1" />
+        </label>
+      }
+      <label>Convention <input [(ngModel)]="companyName" name="companyName" /></label>
+    }
+
+    @if (isDoctor) {
+      <label>Specialite <input [(ngModel)]="specialty" name="specialty" /></label>
+      <label>Langues parlees <input [(ngModel)]="spokenLanguages" name="spokenLanguages" /></label>
+      <label>Tarif standard <input [(ngModel)]="standardConsultationRate" name="standardConsultationRate" type="number" /></label>
+      <label>Bio <textarea [(ngModel)]="bio" name="bio" rows="4"></textarea></label>
+    }
+
+    <div *ngIf="error" class="message-box"
+      style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #f0f0f0;">
+      {{ error }}
+    </div>
+    <div *ngIf="success" class="message-box"
+      style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #f0f0f0;">
+      {{ success }}
+    </div>
+    <button class="btn primary full" type="submit"
+      [disabled]="saving">
+      {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+    </button>
+
+  </form>
+  <aside class="section-panel">
+    <h2>Notifications</h2>
+    <label class="check-row"><input type="checkbox" checked /> Rappels 24h avant
+      rendez-vous</label>
+    <label class="check-row"><input type="checkbox" checked /> Alertes de
+      facturation</label>
+    <label class="check-row"><input type="checkbox" /> Resume
+      hebdomadaire</label>
+  </aside>
+</section>

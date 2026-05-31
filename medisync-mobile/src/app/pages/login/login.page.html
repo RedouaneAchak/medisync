@@ -1,0 +1,77 @@
+<ion-content [fullscreen]="true" class="login-content">
+  <div class="login-header">
+    <img src="assets/logo.png" class="logo-img" alt="MediSync">
+    <h1 class="app-title">MediSync</h1>
+    <p class="app-subtitle">{{ mode === 'signin' ? 'Connexion patient sécurisée' : 'Créer un compte patient' }}</p>
+  </div>
+
+  <div class="login-form">
+    <div class="form-group" *ngIf="mode === 'signup'">
+      <label>Nom complet</label>
+      <ion-input
+        type="text"
+        placeholder="Nom et prénom"
+        [(ngModel)]="fullName"
+        fill="outline"
+        class="custom-input">
+      </ion-input>
+    </div>
+
+    <div class="form-group">
+      <label>Email</label>
+      <ion-input
+        type="email"
+        placeholder="votre@email.com"
+        [(ngModel)]="email"
+        fill="outline"
+        class="custom-input">
+      </ion-input>
+    </div>
+
+    <div class="form-group">
+      <label>Mot de passe</label>
+      <ion-input
+        type="password"
+        placeholder="••••••••"
+        [(ngModel)]="password"
+        fill="outline"
+        class="custom-input">
+      </ion-input>
+      <div class="forgot-password" *ngIf="mode === 'signin'">
+        <a href="#">Mot de passe oublié ?</a>
+      </div>
+    </div>
+
+    <div class="form-group" *ngIf="mode === 'signup'">
+      <label>Téléphone</label>
+      <ion-input
+        type="tel"
+        placeholder="+212 ..."
+        [(ngModel)]="phone"
+        fill="outline"
+        class="custom-input">
+      </ion-input>
+    </div>
+
+    <div class="forgot-password" *ngIf="error" style="margin-bottom: 12px; color: #b42318;">
+      {{ error }}
+    </div>
+
+    <ion-button expand="block" class="btn-login" (click)="login()" [disabled]="loading">
+      {{ loading ? 'Chargement...' : mode === 'signin' ? 'Se connecter' : 'Créer mon compte' }}
+    </ion-button>
+
+    <div class="divider">
+      <span>ou</span>
+    </div>
+
+    <ion-button expand="block" fill="outline" class="btn-biometric" (click)="loginBiometric()">
+      👆 Connexion biométrique
+    </ion-button>
+
+    <div class="register-link">
+      {{ mode === 'signin' ? 'Pas encore de compte ?' : 'Vous avez déjà un compte ?' }}
+      <a (click)="goToRegister()">{{ mode === 'signin' ? "S'inscrire" : 'Se connecter' }}</a>
+    </div>
+  </div>
+</ion-content>

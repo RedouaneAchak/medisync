@@ -1,0 +1,70 @@
+<ion-content [fullscreen]="true" class="appointments-content">
+  <div class="appointments-header">
+    <div class="app-name">MediSync</div>
+    <div class="header-title">Mes Rendez-vous</div>
+  </div>
+
+  <div class="tabs-row">
+    <div class="tab" [class.active]="activeTab === 'upcoming'" (click)="activeTab = 'upcoming'">
+      À venir
+    </div>
+    <div class="tab" [class.active]="activeTab === 'past'" (click)="activeTab = 'past'">
+      Passés
+    </div>
+  </div>
+
+  <div class="scroll-content">
+    <div class="section-label" *ngIf="error">{{ error }}</div>
+    <div class="section-label" *ngIf="message">{{ message }}</div>
+
+    <div *ngIf="activeTab === 'upcoming'">
+      <div class="rdv-card" *ngFor="let rdv of upcomingRdv">
+        <div class="rdv-top">
+          <div class="avatar" [style.background]="rdv.avatarBg" [style.color]="rdv.avatarColor">
+            {{ rdv.initials }}
+          </div>
+          <div class="rdv-info">
+            <div class="rdv-doctor">{{ rdv.doctor }}</div>
+            <div class="rdv-specialty">{{ rdv.specialty }}</div>
+          </div>
+          <span class="pill" [ngClass]="rdv.statusClass">{{ rdv.statusLabel }}</span>
+        </div>
+        <div class="rdv-details">
+          <span>📅 {{ rdv.date }}</span>
+          <span>🕘 {{ rdv.time }}</span>
+          <span>📍 {{ rdv.location }}</span>
+        </div>
+        <div class="rdv-actions">
+          <button class="btn-cancel" (click)="cancelRdv(rdv)">Annuler</button>
+          <button class="btn-reschedule" (click)="reschedule(rdv)">Modifier</button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="activeTab === 'past'">
+      <div class="rdv-card past" *ngFor="let rdv of pastRdv">
+        <div class="rdv-top">
+          <div class="avatar" [style.background]="rdv.avatarBg" [style.color]="rdv.avatarColor">
+            {{ rdv.initials }}
+          </div>
+          <div class="rdv-info">
+            <div class="rdv-doctor">{{ rdv.doctor }}</div>
+            <div class="rdv-specialty">{{ rdv.specialty }}</div>
+          </div>
+          <span class="pill" [ngClass]="rdv.statusClass">{{ rdv.statusLabel }}</span>
+        </div>
+        <div class="rdv-details">
+          <span>📅 {{ rdv.date }}</span>
+          <span>🕘 {{ rdv.time }}</span>
+        </div>
+        <div class="rdv-actions">
+          <button class="btn-reschedule" (click)="newRdv(rdv)">Reprendre RDV</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 80px;"></div>
+  </div>
+</ion-content>
+
+<app-tab-bar currentPage="appointments"></app-tab-bar>

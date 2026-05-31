@@ -1,0 +1,62 @@
+<div class="app-shell" [class.public-shell]="isPublicPage">
+  <header class="topbar">
+    <a routerLink="/" class="brand" aria-label="MediSync home">
+      <img src="/logo.png" alt="Logo MediSync" class="brand-logo" />
+      <span>MediSync</span>
+    </a>
+    <nav class="top-nav" aria-label="Navigation principale">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Accueil</a>
+      <a routerLink="/announcements" routerLinkActive="active">Annonces</a>
+      @if (user) {
+        <a routerLink="/doctors" routerLinkActive="active">Medecins</a>
+        @if (canSee(['PATIENT', 'SECRETARY', 'ADMIN'])) {
+          <a routerLink="/booking" routerLinkActive="active">Rendez-vous</a>
+        }
+        @if (canSee(['PATIENT', 'DOCTOR', 'ADMIN'])) {
+          <a routerLink="/medical-record" routerLinkActive="active">Dossier</a>
+        }
+        @if (canSee(['PATIENT', 'SECRETARY', 'ADMIN'])) {
+          <a routerLink="/billing" routerLinkActive="active">Factures</a>
+        }
+      }
+    </nav>
+    <div class="top-actions">
+      @if (user) {
+        <a routerLink="/notifications" class="icon-button notification-button" aria-label="Notifications sonores">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3.2a4.8 4.8 0 0 0-4.8 4.8v2.9c0 .8-.25 1.58-.72 2.22L5.3 14.76A1.4 1.4 0 0 0 6.43 17h11.14a1.4 1.4 0 0 0 1.13-2.24l-1.18-1.64a3.74 3.74 0 0 1-.72-2.22V8A4.8 4.8 0 0 0 12 3.2Z" />
+          <path d="M9.75 18.25a2.25 2.25 0 0 0 4.5 0" />
+          <path class="sound-wave" d="M18.7 5.4c1.05 1.1 1.65 2.58 1.65 4.1s-.6 3-1.65 4.1" />
+        </svg>
+        <span class="notification-badge"></span>
+        </a>
+      }
+      @if (user) {
+        <button class="btn secondary" type="button" (click)="logout()">Deconnexion</button>
+      } @else {
+        <a routerLink="/login" class="btn secondary">Connexion</a>
+      }
+    </div>
+  </header>
+
+  @if (!isPublicPage) {
+    <aside class="sidebar">
+      <span class="sidebar-label">Espace {{ user?.role?.toLowerCase() }}</span>
+      <a routerLink="/appointments" routerLinkActive="active">Planning</a>
+      @if (canSee(['SECRETARY', 'ADMIN'])) {
+        <a routerLink="/patients" routerLinkActive="active">Patients</a>
+      }
+      @if (canSee(['SECRETARY', 'ADMIN'])) {
+        <a routerLink="/rooms" routerLinkActive="active">Salles</a>
+      }
+      <a routerLink="/profile" routerLinkActive="active">Profil</a>
+      @if (canSee(['ADMIN'])) {
+        <a routerLink="/admin" routerLinkActive="active">Admin</a>
+      }
+    </aside>
+  }
+
+  <main class="page">
+    <router-outlet />
+  </main>
+</div>

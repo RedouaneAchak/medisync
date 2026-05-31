@@ -1,0 +1,64 @@
+<ion-content [fullscreen]="true" class="booking-content">
+  <div class="booking-header">
+    <div class="back-btn" (click)="goBack()">‹</div>
+    <div class="header-title">Prendre un RDV</div>
+    <div></div>
+  </div>
+
+  <div class="doctor-profile" *ngIf="doctor">
+    <div class="avatar" [style.background]="doctor.avatarBg" [style.color]="doctor.avatarColor">
+      {{ doctor.initials }}
+    </div>
+    <div class="doctor-info">
+      <div class="doctor-name">{{ doctor.name }}</div>
+      <div class="doctor-specialty">{{ doctor.specialty }}</div>
+      <div class="doctor-meta">⭐ {{ doctor.rating }} • 📍 {{ doctor.location }}</div>
+    </div>
+  </div>
+
+  <div class="scroll-content">
+    <div class="section-label" *ngIf="error">{{ error }}</div>
+
+    <div class="section-label">Motif de consultation</div>
+    <div class="motif-grid">
+      <div class="motif-item"
+           *ngFor="let motif of motifs"
+           [class.selected]="selectedMotif === motif"
+           (click)="selectedMotif = motif">
+        {{ motif }}
+      </div>
+    </div>
+
+    <div class="section-label">Choisir une date</div>
+    <div class="dates-row">
+      <div class="date-item"
+           *ngFor="let date of availableDates"
+           [class.selected]="selectedDate === date.full"
+           (click)="selectDate(date.full)">
+        <div class="date-day">{{ date.day }}</div>
+        <div class="date-num">{{ date.num }}</div>
+      </div>
+    </div>
+
+    <div class="section-label">Créneaux disponibles</div>
+    <div class="section-label" *ngIf="loadingSlots">Chargement des créneaux...</div>
+    <div class="slots-grid">
+      <div class="slot"
+           *ngFor="let slot of timeSlots"
+           [class.taken]="!slot.available"
+           [class.selected]="selectedSlot === slot.time && slot.available"
+           (click)="selectSlot(slot)">
+        {{ slot.time }}
+      </div>
+    </div>
+    <div class="section-label" *ngIf="!loadingSlots && !timeSlots.length">Aucun créneau disponible pour cette date.</div>
+
+    <button class="btn-confirm" (click)="confirmBooking()" [disabled]="!canConfirm() || saving">
+      {{ saving ? 'Confirmation...' : 'Confirmer le rendez-vous' }}
+    </button>
+
+    <div style="height: 80px;"></div>
+  </div>
+</ion-content>
+
+<app-tab-bar currentPage="booking"></app-tab-bar>

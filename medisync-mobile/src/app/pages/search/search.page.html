@@ -1,0 +1,48 @@
+<ion-content [fullscreen]="true" class="search-content">
+  <div class="search-header">
+    <div class="app-name">MediSync</div>
+    <div class="header-title">Trouver un médecin</div>
+  </div>
+
+  <div class="search-bar-container">
+    <div class="search-bar">
+      <span>🔍</span>
+      <input
+        type="text"
+        placeholder="Nom, spécialité..."
+        [(ngModel)]="searchQuery"
+        (input)="filterDoctors()">
+    </div>
+  </div>
+
+  <div class="filters-row">
+    <div class="f-chip" *ngFor="let filter of filters" [class.on]="activeFilter === filter" (click)="setFilter(filter)">{{ filter }}</div>
+  </div>
+
+  <div class="scroll-content">
+    <div class="section-label" *ngIf="loading">Chargement des médecins...</div>
+    <div class="section-label" *ngIf="error">{{ error }}</div>
+
+    <div class="section-label">{{ filteredDoctors.length }} médecin(s) trouvé(s)</div>
+
+    <div class="doctor-card" *ngFor="let doctor of filteredDoctors" (click)="goToBooking(doctor)">
+      <div class="avatar" [style.background]="doctor.avatarBg" [style.color]="doctor.avatarColor">
+        {{ doctor.initials }}
+      </div>
+      <div class="doctor-info">
+        <div class="doctor-name">{{ doctor.name }}</div>
+        <div class="doctor-specialty">{{ doctor.specialty }}</div>
+        <div class="doctor-meta">
+          <span>⭐ {{ doctor.rating }}</span>
+          <span>📍 {{ doctor.location }}</span>
+          <span class="pill pill-green" *ngIf="doctor.available">Disponible</span>
+        </div>
+      </div>
+      <div class="chevron">›</div>
+    </div>
+
+    <div style="height: 80px;"></div>
+  </div>
+</ion-content>
+
+<app-tab-bar currentPage="search"></app-tab-bar>

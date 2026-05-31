@@ -1,0 +1,22 @@
+<div class="bottom-nav">
+  <div class="bn-item" [class.active]="currentPage === 'home'" (click)="navigate('home')">
+    <span class="bn-icon">🏠</span>
+    <span>Accueil</span>
+  </div>
+  <div class="bn-item" [class.active]="currentPage === 'search'" (click)="navigate('search')">
+    <span class="bn-icon">🔍</span>
+    <span>Médecins</span>
+  </div>
+  <div class="bn-item" [class.active]="currentPage === 'appointments'" (click)="navigate('appointments')">
+    <span class="bn-icon">📅</span>
+    <span>RDV</span>
+  </div>
+  <div class="bn-item" [class.active]="currentPage === 'dossier'" (click)="navigate('dossier')">
+    <span class="bn-icon">📋</span>
+    <span>Dossier</span>
+  </div>
+  <div class="bn-item" [class.active]="currentPage === 'profile'" (click)="navigate('profile')">
+    <span class="bn-icon">👤</span>
+    <span>Profil</span>
+  </div>
+</div>

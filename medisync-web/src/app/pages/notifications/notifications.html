@@ -1,0 +1,19 @@
+<section class="page-title compact">
+  <span class="eyebrow">Journal</span>
+  <h1>Notifications</h1>
+</section>
+
+<section class="section-panel">
+  @for (notification of notifications; track notification.title) {
+    <div class="notification-row">
+      <span class="notice-dot" [class]="'tone-' + notification.tone"></span>
+      <div>
+        <strong>{{ notification.title }}</strong>
+        <p>{{ notification.detail }}</p>
+      </div>
+      <span>{{ notification.time }}</span>
+    </div>
+  } @empty {
+    <p class="muted">Aucune notification backend pour le moment.</p>
+  }
+</section>

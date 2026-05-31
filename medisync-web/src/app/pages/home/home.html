@@ -1,0 +1,208 @@
+<section class="hero-grid">
+  <div class="hero-copy">
+    <span class="eyebrow">MediSync hospital network</span>
+    <h1>Une experience hospitaliere plus claire, avant meme l'arrivee du patient.</h1>
+    <p>
+      MediSync connecte les patients aux services essentiels: trouver un medecin,
+      demander un rendez-vous, consulter son dossier medical et suivre ses rappels
+      depuis un espace simple et rassurant.
+    </p>
+    <div class="hero-actions">
+      <a routerLink="/booking" class="btn primary">Demander un rendez-vous</a>
+      <a routerLink="/login" class="btn secondary">Acceder a mon espace</a>
+    </div>
+  </div>
+  <figure class="home-hero-photo">
+    <img
+      src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1400"
+      alt="Hall de reception hospitalier moderne"
+    />
+    <figcaption>
+      <strong>Accueil coordonne</strong>
+      <span>Le parcours patient commence par une information lisible et des rendez-vous faciles a suivre.</span>
+    </figcaption>
+  </figure>
+</section>
+
+<section class="home-info-band">
+  <div>
+    <span class="eyebrow">Pour les patients</span>
+    <h2>Tout commence par une demande simple.</h2>
+    <p>
+      Le patient peut consulter les specialites disponibles, choisir un medecin,
+      deposer une demande pour lui-meme ou pour un proche, puis recevoir les
+      rappels necessaires avant la consultation.
+    </p>
+  </div>
+  <div>
+    <span class="eyebrow">Pour la clinique</span>
+    <h2>Une organisation lisible pour chaque service.</h2>
+    <p>
+      Le secretariat garde la main sur le planning, les salles, les patients et
+      les factures. Les medecins retrouvent les informations utiles dans le
+      dossier medical au moment de la consultation.
+    </p>
+  </div>
+</section>
+
+<section class="content-grid public-sections">
+  <article class="section-panel wide">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Horaires medicaux</span>
+        <h2>Disponibilites des services</h2>
+      </div>
+    </div>
+    <div class="table-list">
+      @for (schedule of doctorSchedules; track schedule.service) {
+        <div class="list-row schedule-row">
+          <strong>{{ schedule.service }}</strong>
+          <span>{{ schedule.days }}</span>
+          <span class="badge tone-blue">{{ schedule.time }}</span>
+        </div>
+      }
+    </div>
+  </article>
+
+  <aside class="section-panel">
+    <span class="eyebrow">Visites</span>
+    <h2>Horaires des visites</h2>
+    <div class="visit-list">
+      @for (visit of visitHours; track visit.unit) {
+        <div>
+          <strong>{{ visit.unit }}</strong>
+          <span>{{ visit.time }}</span>
+        </div>
+      }
+    </div>
+  </aside>
+</section>
+
+<section class="minister-section">
+  <img
+    src="https://commons.wikimedia.org/wiki/Special:FilePath/Portrait%20RNI%20d%27Amine%20Tahraoui.webp"
+    alt="Portrait de M. Amine Tehraoui, Ministre de la Sante et de la Protection Sociale du Maroc"
+  />
+  <div>
+    <span class="eyebrow">Mot de M. Amine Tehraoui</span>
+    <h2>Placer le patient au centre de chaque decision.</h2>
+    <p>
+      Notre ambition est de rendre le parcours de soins plus accessible, plus
+      transparent et mieux coordonne. Les outils numeriques comme MediSync
+      permettent aux hopitaux de rapprocher l information medicale du patient
+      tout en facilitant le travail quotidien des equipes de sante.
+    </p>
+    <strong>Ministre de la Sante et de la Protection Sociale du Maroc</strong>
+  </div>
+</section>
+
+<section class="patient-view-section">
+  <div>
+    <span class="eyebrow">Vue patient</span>
+    <h2>Des espaces calmes pour accompagner le soin.</h2>
+    <p>
+      Au-dela des consultations, l'accueil hospitalier doit offrir des lieux
+      lumineux, une signaletique claire et des zones de repos qui diminuent le
+      stress des patients et de leurs familles.
+    </p>
+    <div class="patient-view-points">
+      <span>Jardin therapeutique</span>
+      <span>Salle d'attente lumineuse</span>
+      <span>Parcours accessible</span>
+    </div>
+  </div>
+  <img
+    src="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=1400"
+    alt="Jardin vert et calme avec plantes pour les patients"
+  />
+</section>
+
+<section class="photo-grid">
+  @for (photo of hospitalPhotos; track photo.title) {
+    <article class="photo-card">
+      <img [src]="photo.src" [alt]="photo.alt" />
+      <div>
+        <h2>{{ photo.title }}</h2>
+        <p>{{ photo.text }}</p>
+      </div>
+    </article>
+  }
+</section>
+
+<section class="stats-grid home-highlights">
+  @for (item of keyFigures; track item.value) {
+    <article class="stat-card">
+      <strong>{{ item.value }}</strong>
+      <span>{{ item.label }}</span>
+    </article>
+  }
+</section>
+
+<section class="home-services">
+  <div class="page-title compact">
+    <span class="eyebrow">Services MediSync</span>
+    <h1>Un espace patient sans complexite.</h1>
+  </div>
+  <div class="service-grid">
+    <article>
+      <h2>Rendez-vous</h2>
+      <p>Demande de consultation, choix du motif et suivi du statut.</p>
+    </article>
+    <article>
+      <h2>Dossier medical</h2>
+      <p>Consultations, observations, ordonnances et documents centralises.</p>
+    </article>
+    <article>
+      <h2>Rappels</h2>
+      <p>Notifications pour ne pas manquer les consultations importantes.</p>
+    </article>
+    <article>
+      <h2>Facturation</h2>
+      <p>Suivi des paiements, assurances et factures associees aux rendez-vous.</p>
+    </article>
+  </div>
+</section>
+
+<section class="rules-section">
+  <div class="page-title compact">
+    <span class="eyebrow">Reglement de l hopital</span>
+    <h1>Des consignes simples pour proteger les patients.</h1>
+  </div>
+  <div class="rules-grid">
+    @for (rule of hospitalRules; track rule) {
+      <article>
+        <span></span>
+        <p>{{ rule }}</p>
+      </article>
+    }
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="footer-main">
+    <div>
+      <a routerLink="/" class="brand footer-brand">
+        <img src="/logo.png" alt="Logo MediSync" class="brand-logo" />
+        <span>MediSync</span>
+      </a>
+      <p>Plateforme web de gestion hospitaliere et de parcours patient.</p>
+    </div>
+    <div>
+      <h3>Contact</h3>
+      <p>Casablanca, Maroc</p>
+      <p>support@medisync.ma</p>
+      <p>+212 5 22 00 00 00</p>
+    </div>
+    <div>
+      <h3>Acces rapide</h3>
+      <a routerLink="/announcements">Annonces</a>
+      <a routerLink="/doctors">Trouver un medecin</a>
+      <a routerLink="/booking">Demander un rendez-vous</a>
+      <a routerLink="/login">Connexion patient</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>Copyright © 2026 MediSync. Tous droits reserves.</span>
+    <span>Confidentialite · Conditions d'utilisation · Accessibilite</span>
+  </div>
+</footer>

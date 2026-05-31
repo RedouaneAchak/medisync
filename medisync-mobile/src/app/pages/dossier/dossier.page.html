@@ -1,0 +1,68 @@
+<ion-content [fullscreen]="true" class="dossier-content">
+  <div class="dossier-header">
+    <div class="app-name">MediSync</div>
+    <div class="header-title">Mon Dossier Médical</div>
+  </div>
+
+  <div class="patient-card">
+    <div class="avatar">{{ patientInitials }}</div>
+    <div class="patient-info">
+      <div class="patient-name">{{ patientName }}</div>
+      <div class="patient-meta">{{ patientMeta }}</div>
+      <div class="patient-meta">📞 {{ patientPhone }}</div>
+    </div>
+  </div>
+
+  <div class="scroll-content">
+    <div class="section-label" *ngIf="error">{{ error }}</div>
+    <div class="section-label" *ngIf="uploadMessage">{{ uploadMessage }}</div>
+
+    <div class="section-label">Consultations récentes</div>
+    <div class="consult-card" *ngFor="let c of consultations">
+      <div class="consult-left">
+        <div class="consult-date">{{ c.date }}</div>
+        <div class="consult-doctor">{{ c.doctor }}</div>
+        <div class="consult-motif">{{ c.motif }}</div>
+      </div>
+      <span class="pill pill-blue">{{ c.type }}</span>
+    </div>
+
+    <div class="section-label">Ordonnances</div>
+    <div class="ordo-card" *ngFor="let o of ordonnances">
+      <div class="ordo-icon">📄</div>
+      <div class="ordo-info">
+        <div class="ordo-title">{{ o.title }}</div>
+        <div class="ordo-date">{{ o.date }} • {{ o.doctor }}</div>
+      </div>
+      <button class="btn-download" (click)="downloadOrdo(o)">⬇</button>
+    </div>
+
+    <div class="section-label">Traitements en cours</div>
+    <div class="treatment-card" *ngFor="let t of treatments">
+      <div class="treatment-info">
+        <div class="treatment-name">{{ t.name }}</div>
+        <div class="treatment-dose">{{ t.dose }} • {{ t.frequency }}</div>
+      </div>
+      <span class="pill pill-green">Actif</span>
+    </div>
+
+    <div class="section-label">Documents médicaux</div>
+    <div class="upload-zone" (click)="openFilePicker()">
+      <span>📎</span>
+      <span>Ajouter un document</span>
+      <span class="upload-hint">PDF, JPG, PNG — max 20 Mo</span>
+    </div>
+    <input #fileInput type="file" (change)="onFileSelected($event)" accept=".pdf,.png,.jpg,.jpeg,.dcm" style="display: none;" />
+    <div class="doc-card" *ngFor="let d of documents">
+      <span class="doc-icon">{{ d.icon }}</span>
+      <div class="doc-info">
+        <div class="doc-name">{{ d.name }}</div>
+        <div class="doc-date">{{ d.date }}</div>
+      </div>
+    </div>
+
+    <div style="height: 80px;"></div>
+  </div>
+</ion-content>
+
+<app-tab-bar currentPage="dossier"></app-tab-bar>

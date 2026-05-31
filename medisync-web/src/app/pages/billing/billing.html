@@ -1,0 +1,82 @@
+<section class="page-title">
+  <span class="eyebrow">Facturation</span>
+  <h1>Paiements et assurances</h1>
+  <p>Suivi des factures generees automatiquement apres chaque rendez-vous.</p>
+</section>
+
+<section class="stats-grid two">
+  <article class="stat-card">
+    <span>Montant ouvert</span>
+    <strong>{{ totalOpen }} MAD</strong>
+    <small>A relancer cette semaine</small>
+  </article>
+  <article class="stat-card">
+    <span>Factures payees</span>
+    <strong>{{ paidCount }}/{{ invoices.length }}</strong>
+    <small>Carte, especes, assurance</small>
+  </article>
+</section>
+
+@if (canCollectPayments) {
+  <section class="section-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Secretariat</span>
+        <h2>Generer une facture</h2>
+      </div>
+    </div>
+    <form class="form-panel" (ngSubmit)="createInvoice()">
+      <label>
+        Rendez-vous
+        <select [(ngModel)]="newInvoice.appointmentId" name="appointmentId" required>
+          @for (appointment of pendingAppointments; track appointment.id) {
+            <option [ngValue]="appointment.id">{{ appointmentLabel(appointment) }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Montant
+        <input [(ngModel)]="newInvoice.amount" name="amount" type="number" min="1" step="0.01" required />
+      </label>
+      <label>
+        Paiement
+        <select [(ngModel)]="newInvoice.paymentMethod" name="paymentMethod">
+          @for (method of paymentMethods; track method) {
+            <option [ngValue]="method">{{ method }}</option>
+          }
+        </select>
+      </label>
+      <button class="btn primary" type="submit" [disabled]="!pendingAppointments.length">Generer la facture</button>
+    </form>
+    @if (!pendingAppointments.length) {
+      <p class="muted">Tous les rendez-vous charges ont deja une facture.</p>
+    }
+  </section>
+}
+
+<section class="section-panel">
+  @if (error) {
+    <p class="muted">{{ error }}</p>
+  }
+  @if (message) {
+    <p class="muted">{{ message }}</p>
+  }
+  <div class="table-list">
+    @for (invoice of invoices; track invoice.id) {
+      <div class="list-row">
+        <div>
+          <strong>{{ invoice.id }}</strong>
+          <span>{{ invoice.patient }} · {{ invoice.appointment }}</span>
+        </div>
+        <span>{{ invoice.method }}</span>
+        <strong>{{ invoice.amount }} MAD</strong>
+        <span class="badge" [class]="invoice.paid ? 'tone-green' : 'tone-yellow'">
+          {{ invoice.paid ? 'Payee' : 'En attente' }}
+        </span>
+        @if (!invoice.paid && canCollectPayments) {
+          <button type="button" (click)="markPaid(invoice)">Encaisser</button>
+        }
+      </div>
+    }
+  </div>
+</section>
