@@ -19,18 +19,35 @@
     <p class="muted">Chargement du dossier médical en cours...</p>
     }
 
+    @if (isDoctorView && doctorPatients.length) {
+    <div class="form-panel" style="margin-bottom: 1rem;">
+      <label>
+        Patient du planning
+        <select [(ngModel)]="selectedDoctorPatientId" name="selectedDoctorPatientId" (ngModelChange)="onDoctorPatientChange()">
+          @for (patient of doctorPatients; track patient.id) {
+          <option [ngValue]="patient.id">{{ patient.name }} - {{ patient.appointmentLabel }}</option>
+          }
+        </select>
+      </label>
+    </div>
+    }
+
     @if (canManageConsultations && !loadingData) {
     <form class="form-panel" (ngSubmit)="saveConsultation()">
+      @if (!isDoctorView) {
       <label>
         ID patient
         <input [(ngModel)]="consultationForm.patientId" name="patientId"
           type="number" required />
       </label>
+      }
+      @if (!isDoctorView) {
       <label>
         ID médecin
         <input [(ngModel)]="consultationForm.doctorId" name="doctorId"
           type="number" required />
       </label>
+      }
       <label>
         Observation
         <textarea [(ngModel)]="consultationForm.observation" name="observation"
@@ -139,13 +156,13 @@
       </button>
     </form>
 
-@for (doc of documents; track doc.url) {
-      <div class="doc-row">
-        <span class="file-icon">Fichier</span>
-        <a [href]="'https://localhost:8443' + doc.url" target="_blank">
-          <strong>{{ doc.name }}</strong>
-        </a>
-      </div>
+    @for (document of documents; track document) {
+    <div class="doc-row">
+      <span class="file-icon">PDF</span>
+      <strong>{{ document }}</strong>
+    </div>
+    } @empty {
+    <p class="muted">Aucun fichier attaché.</p>
     }
   </aside>
 </section>

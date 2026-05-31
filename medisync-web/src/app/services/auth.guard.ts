@@ -15,7 +15,7 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   const allowedRoles = route.data['roles'] as AuthUser['role'][] | undefined;
   if (allowedRoles?.length && !allowedRoles.includes(user.role)) {
-    return router.createUrlTree(['/profile']);
+    return router.createUrlTree([authService.defaultRouteFor(user)]);
   }
 
   return true;

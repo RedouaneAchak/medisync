@@ -1,41 +1,48 @@
 <ion-content [fullscreen]="true" class="home-content">
-
-  <!-- Header -->
   <div class="home-header">
-  <div class="header-left">
-    <div class="brand">
-      <img src="assets/logo.png" class="brand-logo" alt="MediSync">
-      <span class="app-name">MediSync</span>
+    <div class="header-left">
+      <div class="brand">
+        <img src="assets/logo.png" class="brand-logo" alt="MediSync">
+        <span class="app-name">MediSync</span>
+      </div>
+      <div class="greeting">Bonjour, {{ greetingName }} 👋</div>
     </div>
-    <div class="greeting">Bonjour, Hamza 👋</div>
+    <div class="header-right" (click)="goToNotifications()">
+      <span class="notif-icon">🔔</span>
+      <span class="notif-badge">{{ notificationCount }}</span>
+    </div>
   </div>
-  <div class="header-right" (click)="goToNotifications()">
-    <span class="notif-icon">🔔</span>
-    <span class="notif-badge">2</span>
-  </div>
-</div>
 
   <div class="scroll-content">
+    <div class="section-label" *ngIf="error">{{ error }}</div>
 
-    <!-- Prochain RDV -->
     <div class="section-label">Prochain rendez-vous</div>
-    <div class="next-rdv-card">
+    <div class="next-rdv-card" *ngIf="nextAppointment; else noAppointment">
       <div class="rdv-top">
-        <div class="avatar av-blue">SB</div>
-        <div class="rdv-info">
-          <div class="rdv-doctor">Dr. Sara Benali</div>
-          <div class="rdv-specialty">Cardiologue</div>
+        <div class="avatar" [style.background]="nextAppointment.avatarBg" [style.color]="nextAppointment.avatarColor">
+          {{ nextAppointment.initials }}
         </div>
-        <span class="pill pill-green">Confirmé</span>
+        <div class="rdv-info">
+          <div class="rdv-doctor">{{ nextAppointment.doctor }}</div>
+          <div class="rdv-specialty">{{ nextAppointment.specialty }}</div>
+        </div>
+        <span class="pill pill-green">{{ nextAppointment.statusLabel }}</span>
       </div>
       <div class="rdv-bottom">
-        <span>📅 10 juin 2025</span>
-        <span>🕘 09:30</span>
-        <span>📍 Clinique Atlas</span>
+        <span>📅 {{ nextAppointment.date }}</span>
+        <span>🕘 {{ nextAppointment.time }}</span>
+        <span>📍 {{ nextAppointment.location }}</span>
       </div>
     </div>
+    <ng-template #noAppointment>
+      <div class="next-rdv-card">
+        <div class="rdv-info">
+          <div class="rdv-doctor">Aucun rendez-vous à venir</div>
+          <div class="rdv-specialty">Vous pouvez réserver depuis la recherche médecin.</div>
+        </div>
+      </div>
+    </ng-template>
 
-    <!-- Accès rapide -->
     <div class="section-label">Accès rapide</div>
     <div class="quick-actions">
       <div class="qa-item" (click)="goToSearch()">
@@ -48,7 +55,7 @@
       </div>
       <div class="qa-item" (click)="goToAppointments()">
         <span class="qa-icon">📄</span>
-        <span>Ordonnances</span>
+        <span>Mes RDV</span>
       </div>
       <div class="qa-item" (click)="goToNotifications()">
         <span class="qa-icon">🔔</span>
@@ -56,40 +63,18 @@
       </div>
     </div>
 
-    <!-- Médecins récents -->
     <div class="section-label">Médecins récents</div>
-
-    <div class="doctor-card" (click)="goToBooking()">
-      <div class="avatar av-blue">SB</div>
+    <div class="doctor-card" *ngFor="let doctor of recentDoctors" (click)="goToBooking(doctor)">
+      <div class="avatar" [style.background]="doctor.avatarBg" [style.color]="doctor.avatarColor">{{ doctor.initials }}</div>
       <div class="doctor-info">
-        <div class="doctor-name">Dr. Sara Benali</div>
-        <div class="doctor-sub">Cardiologue • ⭐ 4.8</div>
-      </div>
-      <span class="chevron">›</span>
-    </div>
-
-    <div class="doctor-card" (click)="goToBooking()">
-      <div class="avatar av-gold">KF</div>
-      <div class="doctor-info">
-        <div class="doctor-name">Dr. Karim Fassi</div>
-        <div class="doctor-sub">Généraliste • ⭐ 4.6</div>
-      </div>
-      <span class="chevron">›</span>
-    </div>
-
-    <div class="doctor-card" (click)="goToBooking()">
-      <div class="avatar av-green">NM</div>
-      <div class="doctor-info">
-        <div class="doctor-name">Dr. Nadia Moussaoui</div>
-        <div class="doctor-sub">Pédiatre • ⭐ 4.9</div>
+        <div class="doctor-name">{{ doctor.name }}</div>
+        <div class="doctor-sub">{{ doctor.specialty }} • ⭐ {{ doctor.rating }}</div>
       </div>
       <span class="chevron">›</span>
     </div>
 
     <div style="height: 80px;"></div>
   </div>
-
 </ion-content>
 
-<!-- Bottom Navigation -->
 <app-tab-bar currentPage="home"></app-tab-bar>

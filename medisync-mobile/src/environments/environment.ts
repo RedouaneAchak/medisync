@@ -1,16 +1,10 @@
-// This file can be replaced during build by using the `fileReplacements` array.
-// `ng build` replaces `environment.ts` with `environment.prod.ts`.
-// The list of file replacements can be found in `angular.json`.
+import { Capacitor } from '@capacitor/core';
+
+const apiHost = Capacitor.getPlatform() === 'android' ? '10.0.2.2' : 'localhost';
 
 export const environment = {
-  production: false
+  production: false,
+  // For Android emulator, 10.0.2.2 points to the host machine.
+  // If you run on a physical device, replace this with your machine LAN IP.
+  apiBaseUrl: `http://${apiHost}:8443/api`,
 };
-
-/*
- * For easier debugging in development mode, you can import the following file
- * to ignore zone related error stack frames such as `zone.run`, `zoneDelegate.invokeTask`.
- *
- * This import should be commented out in production mode because it will have a negative impact
- * on performance if an error is thrown.
- */
-// import 'zone.js/plugins/zone-error';  // Included with Angular CLI.

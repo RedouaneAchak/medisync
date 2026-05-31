@@ -9,13 +9,13 @@
       <a routerLink="/announcements" routerLinkActive="active">Annonces</a>
       @if (user) {
         <a routerLink="/doctors" routerLinkActive="active">Medecins</a>
-        @if (canSee(['PATIENT'])) {
+        @if (canSee(['PATIENT', 'SECRETARY', 'ADMIN'])) {
           <a routerLink="/booking" routerLinkActive="active">Rendez-vous</a>
         }
-        @if (canSee(['PATIENT'])) {
+        @if (canSee(['PATIENT', 'DOCTOR', 'ADMIN'])) {
           <a routerLink="/medical-record" routerLinkActive="active">Dossier</a>
         }
-        @if (canSee(['PATIENT'])) {
+        @if (canSee(['PATIENT', 'SECRETARY', 'ADMIN'])) {
           <a routerLink="/billing" routerLinkActive="active">Factures</a>
         }
       }
@@ -39,34 +39,17 @@
     </div>
   </header>
 
-@if (!isPublicPage) {
+  @if (!isPublicPage) {
     <aside class="sidebar">
-      <span class="sidebar-label">Espace clinique</span>
-      
-      @if (canSee(['PATIENT','DOCTOR', 'SECRETARY'])) {
-        <a routerLink="/appointments" routerLinkActive="active">Planning</a>
-      }
-      
-      @if (canSee(['DOCTOR', 'ADMIN'])) {
-        <a routerLink="/consultations" routerLinkActive="active">Consultations</a>
-      }
-
+      <span class="sidebar-label">Espace {{ user?.role?.toLowerCase() }}</span>
+      <a routerLink="/appointments" routerLinkActive="active">Planning</a>
       @if (canSee(['SECRETARY', 'ADMIN'])) {
         <a routerLink="/patients" routerLinkActive="active">Patients</a>
       }
-      
       @if (canSee(['SECRETARY', 'ADMIN'])) {
         <a routerLink="/rooms" routerLinkActive="active">Salles</a>
       }
-      
-      @if (canSee(['ADMIN'])) {
-        <a routerLink="/audit-logs" routerLinkActive="active">Logs d'audit</a>
-      }
-
-      @if (canSee(['PATIENT', 'DOCTOR', 'SECRETARY'])) {
-        <a routerLink="/profile" routerLinkActive="active">Profil</a>
-      }
-      
+      <a routerLink="/profile" routerLinkActive="active">Profil</a>
       @if (canSee(['ADMIN'])) {
         <a routerLink="/admin" routerLinkActive="active">Admin</a>
       }

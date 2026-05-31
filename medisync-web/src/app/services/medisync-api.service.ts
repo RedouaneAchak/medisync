@@ -48,6 +48,7 @@ export interface BackendAppointment {
   patient?: BackendPatient;
   doctor?: BackendDoctor;
   room?: BackendRoom;
+  invoice?: { id: number };
 }
 
 export interface BackendInvoice {
@@ -182,6 +183,10 @@ export class MedisyncApiService {
     return this.http.patch<BackendInvoice>(`/api/secretary/invoices/${id}/pay`, {});
   }
 
+  generateInvoice(body: { appointmentId: number; amount: number; paymentMethod: string }) {
+    return this.http.post<BackendInvoice>('/api/secretary/invoices', body);
+  }
+
   getRoomsForAdmin() {
     return this.http.get<BackendRoom[]>('/api/admin/rooms');
   }
@@ -218,14 +223,6 @@ export class MedisyncApiService {
 
   getPatientMedicalHistory(patientId: number) {
     return this.http.get<BackendConsultation[]>(`/api/patient/${patientId}/medical-history`);
-  }
-
-  getConsultations() {
-    return this.http.get<any[]>('http://localhost:8443/api/consultations');
-  }
-
-  getAuditLogs() {
-    return this.http.get<any[]>('http://localhost:8443/api/admin/audit-logs');
   }
 
   getConsultationsForDoctor(doctorId: number) {

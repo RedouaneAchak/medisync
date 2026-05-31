@@ -99,6 +99,10 @@ public class AuthenticationService {
 
     public AuthenticationResponse googleLogin(GoogleLoginRequest request) {
         try {
+            if (googleClientId == null || googleClientId.isBlank() || "disabled".equalsIgnoreCase(googleClientId)) {
+                throw new RuntimeException("Google Sign-In n'est pas configuré sur le serveur.");
+            }
+
             // FIX : googleClientId injecté depuis application.properties
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier
                     .Builder(new NetHttpTransport(), new GsonFactory())

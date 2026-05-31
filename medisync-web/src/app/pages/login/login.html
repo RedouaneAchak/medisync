@@ -4,13 +4,12 @@
       src="https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&q=80&w=1200"
       alt="Patient utilisant son espace medical en ligne" />
     <div>
-      <span class="eyebrow">Espace patient</span>
+      <span class="eyebrow">Portail MediSync</span>
       <h1>{{ mode === 'signin' ? 'Connexion a votre espace' :
         'Creation de votre compte' }}</h1>
       <p>
-        Accedez a vos rendez-vous, rappels, documents medicaux et factures.
-        Les comptes medecins et equipe clinique seront ajoutes par
-        l'administration.
+        Patients, medecins, secretaires et administrateurs peuvent se connecter ici.
+        L'inscription autonome reste reservee au compte patient.
       </p>
     </div>
     <div class="auth-switch">
@@ -22,21 +21,21 @@
   </div>
 
   <form class="auth-card" (ngSubmit)="submit()">
-    <span class="eyebrow">Espace patient</span>
+    <span class="eyebrow">{{ mode === 'signin' ? 'Connexion securisee' : 'Inscription patient' }}</span>
     <h2>{{ mode === 'signin' ? 'Sign in' : 'Sign up' }}</h2>
     @if (mode === 'signup') {
     <label>
       Nom complet
-      <input [(ngModel)]="fullName" name="fullName" placeholder="Votre nom complet" />
+      <input [(ngModel)]="fullName" name="fullName" placeholder="Votre nom" />
     </label>
     }
     <label>
       Email
-      <input [(ngModel)]="email" name="email" type="email" placeholder="redouane@exemple.com" />
+      <input [(ngModel)]="email" name="email" type="email" />
     </label>
     <label>
       Mot de passe
-      <input [(ngModel)]="password" name="password" type="password" placeholder="********" />
+      <input [(ngModel)]="password" name="password" type="password" />
     </label>
     @if (mode === 'signup') {
     <label>
@@ -53,16 +52,15 @@
     <button class="btn primary full" type="submit" [disabled]="loading">
       {{ loading ? 'Connexion...' : mode === 'signin' ? 'Sign in' : 'Sign up' }}
     </button>
-    <div class="auth-divider"><span>ou verification en deux etapes</span></div>
-    
-    <button type="button" class="google-button" (click)="loginWithGoogle()"> Continuer avec
-      <span class="google-g">
-        <b class="google-blue">G</b><b class="google-red">o</b><b
-          class="google-yellow">o</b><b class="google-blue">g</b><b
-          class="google-green">l</b><b class="google-red">e</b>
-      </span>
-    </button>
-    
+    <div class="auth-divider"><span>ou via Google</span></div>
+    @if (googleEnabled) {
+      <div #googleButtonHost class="google-button-host"></div>
+      @if (googleLoading) {
+        <p class="muted">Connexion Google en cours...</p>
+      }
+    } @else {
+      <p class="muted">Google Sign-In n'est pas encore configuré pour cet environnement.</p>
+    }
     <button type="button" class="muted-link as-button"
       (click)="mode = mode === 'signin' ? 'signup' : 'signin'">
       {{ mode === 'signin' ? 'Creer un compte patient' : 'J ai deja un compte'

@@ -1,12 +1,9 @@
 <ion-content [fullscreen]="true" class="search-content">
-
-  <!-- Header -->
   <div class="search-header">
     <div class="app-name">MediSync</div>
     <div class="header-title">Trouver un médecin</div>
   </div>
 
-  <!-- Barre de recherche -->
   <div class="search-bar-container">
     <div class="search-bar">
       <span>🔍</span>
@@ -18,18 +15,14 @@
     </div>
   </div>
 
-  <!-- Filtres -->
   <div class="filters-row">
-    <div class="f-chip" [class.on]="activeFilter === 'Tous'" (click)="setFilter('Tous')">Tous</div>
-    <div class="f-chip" [class.on]="activeFilter === 'Cardiologue'" (click)="setFilter('Cardiologue')">Cardiologue</div>
-    <div class="f-chip" [class.on]="activeFilter === 'Généraliste'" (click)="setFilter('Généraliste')">Généraliste</div>
-    <div class="f-chip" [class.on]="activeFilter === 'Pédiatre'" (click)="setFilter('Pédiatre')">Pédiatre</div>
-    <div class="f-chip" [class.on]="activeFilter === 'Dermatologue'" (click)="setFilter('Dermatologue')">Dermatologue</div>
+    <div class="f-chip" *ngFor="let filter of filters" [class.on]="activeFilter === filter" (click)="setFilter(filter)">{{ filter }}</div>
   </div>
 
   <div class="scroll-content">
+    <div class="section-label" *ngIf="loading">Chargement des médecins...</div>
+    <div class="section-label" *ngIf="error">{{ error }}</div>
 
-    <!-- Résultats -->
     <div class="section-label">{{ filteredDoctors.length }} médecin(s) trouvé(s)</div>
 
     <div class="doctor-card" *ngFor="let doctor of filteredDoctors" (click)="goToBooking(doctor)">
@@ -50,7 +43,6 @@
 
     <div style="height: 80px;"></div>
   </div>
-
 </ion-content>
 
 <app-tab-bar currentPage="search"></app-tab-bar>

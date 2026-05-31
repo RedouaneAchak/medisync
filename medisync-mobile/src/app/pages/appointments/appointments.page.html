@@ -1,12 +1,9 @@
 <ion-content [fullscreen]="true" class="appointments-content">
-
-  <!-- Header -->
   <div class="appointments-header">
     <div class="app-name">MediSync</div>
     <div class="header-title">Mes Rendez-vous</div>
   </div>
 
-  <!-- Onglets -->
   <div class="tabs-row">
     <div class="tab" [class.active]="activeTab === 'upcoming'" (click)="activeTab = 'upcoming'">
       À venir
@@ -17,8 +14,9 @@
   </div>
 
   <div class="scroll-content">
+    <div class="section-label" *ngIf="error">{{ error }}</div>
+    <div class="section-label" *ngIf="message">{{ message }}</div>
 
-    <!-- RDV à venir -->
     <div *ngIf="activeTab === 'upcoming'">
       <div class="rdv-card" *ngFor="let rdv of upcomingRdv">
         <div class="rdv-top">
@@ -43,7 +41,6 @@
       </div>
     </div>
 
-    <!-- RDV passés -->
     <div *ngIf="activeTab === 'past'">
       <div class="rdv-card past" *ngFor="let rdv of pastRdv">
         <div class="rdv-top">
@@ -68,7 +65,6 @@
 
     <div style="height: 80px;"></div>
   </div>
-
 </ion-content>
 
 <app-tab-bar currentPage="appointments"></app-tab-bar>

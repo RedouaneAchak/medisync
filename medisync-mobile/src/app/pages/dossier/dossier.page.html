@@ -1,25 +1,23 @@
 <ion-content [fullscreen]="true" class="dossier-content">
-
-  <!-- Header -->
   <div class="dossier-header">
     <div class="app-name">MediSync</div>
     <div class="header-title">Mon Dossier Médical</div>
   </div>
 
-   <!-- Infos patient -->
   <div class="patient-card">
-    <div class="avatar">HZ</div>
+    <div class="avatar">{{ patientInitials }}</div>
     <div class="patient-info">
-      <div class="patient-name">Hamza Benkirane</div>
-      <div class="patient-meta">Né le 15/03/1998 • Groupe A+</div>
-      <div class="patient-meta">📞 +212 6 12 34 56 78</div>
+      <div class="patient-name">{{ patientName }}</div>
+      <div class="patient-meta">{{ patientMeta }}</div>
+      <div class="patient-meta">📞 {{ patientPhone }}</div>
     </div>
   </div>
 
   <div class="scroll-content">
+    <div class="section-label" *ngIf="error">{{ error }}</div>
+    <div class="section-label" *ngIf="uploadMessage">{{ uploadMessage }}</div>
 
-    <!-- Sections -->
-     <div class="section-label">Consultations récentes</div>
+    <div class="section-label">Consultations récentes</div>
     <div class="consult-card" *ngFor="let c of consultations">
       <div class="consult-left">
         <div class="consult-date">{{ c.date }}</div>
@@ -49,11 +47,12 @@
     </div>
 
     <div class="section-label">Documents médicaux</div>
-    <div class="upload-zone" (click)="uploadDocument()">
+    <div class="upload-zone" (click)="openFilePicker()">
       <span>📎</span>
       <span>Ajouter un document</span>
       <span class="upload-hint">PDF, JPG, PNG — max 20 Mo</span>
     </div>
+    <input #fileInput type="file" (change)="onFileSelected($event)" accept=".pdf,.png,.jpg,.jpeg,.dcm" style="display: none;" />
     <div class="doc-card" *ngFor="let d of documents">
       <span class="doc-icon">{{ d.icon }}</span>
       <div class="doc-info">
@@ -64,8 +63,6 @@
 
     <div style="height: 80px;"></div>
   </div>
-
 </ion-content>
 
 <app-tab-bar currentPage="dossier"></app-tab-bar>
-

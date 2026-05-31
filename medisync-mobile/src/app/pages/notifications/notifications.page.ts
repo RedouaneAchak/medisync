@@ -1,64 +1,110 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonContent } from '@ionic/angular/standalone';
+import { forkJoin } from 'rxjs';
+
 import { TabBarComponent } from '../../shared/tab-bar/tab-bar.component';
+import { AuthService } from '../../services/auth.service';
+import { MedisyncApiService } from '../../services/medisync-api.service';
+import { BackendAppointment, BackendInvoice } from '../../services/medisync.models';
+
+interface NotificationItem {
+  icon: string;
+  iconBg: string;
+  title: string;
+  body: string;
+  time: string;
+  read: boolean;
+}
 
 @Component({
   selector: 'app-notifications',
   templateUrl: './notifications.page.html',
   styleUrls: ['./notifications.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonContent, TabBarComponent]
+  imports: [CommonModule, IonContent, TabBarComponent],
 })
 export class NotificationsPage {
+  todayNotifs: NotificationItem[] = [];
+  weekNotifs: NotificationItem[] = [];
+  error = '';
 
-  todayNotifs = [
-    {
-      icon: '📅',
-      iconBg: '#dbeafe',
-      title: 'Rappel de rendez-vous',
-      body: 'Votre RDV avec Dr. Sara Benali est demain à 09:30',
-      time: 'Il y a 1 heure',
-      read: false
-    },
-    {
-      icon: '✅',
-      iconBg: '#dcfce7',
-      title: 'RDV confirmé',
-      body: 'Dr. Karim Fassi a confirmé votre rendez-vous du 18 juin',
-      time: 'Il y a 3 heures',
-      read: false
-    }
-  ];
+  constructor(
+    private readonly authService: AuthService,
+    private readonly api: MedisyncApiService,
+  ) {}
 
-  weekNotifs = [
-    {
-      icon: '💊',
-      iconBg: '#fef3c7',
-      title: 'Rappel médicament',
-      body: 'N\'oubliez pas de prendre votre Kardégic 75mg ce matin',
-      time: 'Hier, 08:00',
-      read: true
-    },
-    {
-      icon: '📄',
-      iconBg: '#ede9fe',
-      title: 'Ordonnance disponible',
-      body: 'Dr. Sara Benali a ajouté une ordonnance à votre dossier',
-      time: 'Lundi, 14:30',
-      read: true
-    },
-    {
-      icon: '⭐',
-      iconBg: '#fce7f3',
-      title: 'Donnez votre avis',
-      body: 'Comment s\'est passée votre consultation avec Dr. Moussaoui ?',
-      time: 'Dimanche, 10:00',
-      read: true
-    }
-  ];
+  ionViewWillEnter(): void {
+    this.loadNotifications();
+  }
 
-  markRead(notif: any) {
+  markRead(notif: NotificationItem): void {
     notif.read = true;
+  }
+
+  private loadNotifications(): void {
+    const user = this.authService.currentUser();
+    if (!user) {
+      this.authService.logout();
+      return;
+    }
+
+    this.error = '';
+    forkJoin({
+      appointments: this.api.getPatientAppointments(user.userId),
+      invoices: this.api.getPatientInvoices(user.userId),
+    }).subscribe({
+      next: ({ appointments, invoices }: { appointments: BackendAppointment[]; invoices: BackendInvoice[] }) => {
+        const now = Date.now();
+        const generated: NotificationItem[] = [];
+
+        appointments
+          .filter((appointment) => appointment.status !== 'CANCELLED')
+          .forEach((appointment) => {
+            const date = new Date(appointment.dateTime);
+            const diffHours = Math.round((date.getTime() - now) / 3600000);
+            if (diffHours >= 0 && diffHours <= 24) {
+              generated.push({
+                icon: '📅',
+                iconBg: '#dbeafe',
+                title: 'Rappel de rendez-vous',
+                body: `Votre RDV ${appointment.appointmentType ?? 'consultation'} est prévu le ${date.toLocaleDateString('fr-MA')} à ${date.toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' })}.`,
+                time: diffHours <= 1 ? 'Dans moins d’une heure' : `Dans ${diffHours} heure(s)`,
+                read: false,
+              });
+            }
+          });
+
+        invoices
+          .filter((invoice) => !invoice.isPaid)
+          .forEach((invoice) => {
+            generated.push({
+              icon: '💳',
+              iconBg: '#fef3c7',
+              title: 'Facture en attente',
+              body: `La facture FAC-${invoice.id} de ${invoice.totalAmount} MAD est encore à régler.`,
+              time: 'Cette semaine',
+              read: false,
+            });
+          });
+
+        if (!generated.length) {
+          generated.push({
+            icon: '✅',
+            iconBg: '#dcfce7',
+            title: 'Aucune alerte urgente',
+            body: 'Vos rendez-vous et votre facturation sont à jour.',
+            time: 'Maintenant',
+            read: true,
+          });
+        }
+
+        this.todayNotifs = generated.slice(0, 2);
+        this.weekNotifs = generated.slice(2);
+      },
+      error: () => {
+        this.error = 'Impossible de charger les notifications.';
+      },
+    });
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
@@ -27,19 +27,16 @@ interface AppointmentRow {
   imports: [FormsModule],
   templateUrl: './appointments.html',
 })
-export class Appointments implements OnInit {
+export class Appointments {
   appointments: AppointmentRow[] = [];
   rooms: BackendRoom[] = [];
-  
-  activeTab = 'À venir';
-  tabs = ['À venir', 'À confirmer', 'Historique'];
-  
-  // Bulletproof state management
+  activeTab = 'A venir';
+  tabs = ['A venir', 'A confirmer', 'Historique'];
   error = '';
-  success = '';
+  message = '';
+  messageType: 'success' | 'error' | 'info' = 'info';
   loading = false;
   saving = false;
-  
   editingId: number | null = null;
   editForm = {
     date: '',
@@ -51,38 +48,14 @@ export class Appointments implements OnInit {
   constructor(
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
-    private readonly cdr: ChangeDetectorRef // Prevents the UI sleep bug!
-  ) {}
-
-  ngOnInit(): void {
+  ) {
     this.loadAppointments();
     this.api.getRooms().subscribe({
       next: (rooms) => {
         this.rooms = rooms;
-        this.cdr.detectChanges();
       },
     });
   }
-
-  // --- THE TAB FILTER LOGIC ---
-  get filteredAppointments(): AppointmentRow[] {
-    const today = new Date().toISOString().slice(0, 10);
-    
-    return this.appointments.filter(app => {
-      if (this.activeTab === 'À venir') {
-        return app.isoDate >= today && app.status !== 'CANCELLED';
-      }
-      if (this.activeTab === 'À confirmer') {
-        return app.status === 'PENDING';
-      }
-      if (this.activeTab === 'Historique') {
-        return app.isoDate < today || app.status === 'CANCELLED';
-      }
-      return true;
-    });
-  }
-
-  // --- ACTIONS ---
 
   startEdit(appointment: AppointmentRow): void {
     this.editingId = appointment.id;
@@ -96,95 +69,72 @@ export class Appointments implements OnInit {
 
   saveEdit(): void {
     if (!this.editingId || !this.editForm.roomId) {
-      this.error = 'Choisissez une salle avant de modifier le rendez-vous.';
+      this.setMessage('Choisissez une salle avant de modifier le rendez-vous.', 'error');
       return;
     }
 
     this.saving = true;
-    this.error = '';
-    this.success = '';
-    
+    this.message = '';
     this.api
       .updateAppointment(this.editingId, {
         dateTime: `${this.editForm.date}T${this.editForm.time}:00`,
         durationMinutes: this.editForm.durationMinutes,
         roomId: this.editForm.roomId,
       })
-      .pipe(finalize(() => {
-        this.saving = false;
-        this.cdr.detectChanges();
-      }))
+      .pipe(finalize(() => (this.saving = false)))
       .subscribe({
         next: (updated) => {
           this.appointments = this.appointments.map((appointment) =>
             appointment.id === updated.id ? this.toAppointmentRow(updated) : appointment,
           );
           this.editingId = null;
-          this.success = 'Rendez-vous modifié avec succès.';
+          this.setMessage('Rendez-vous modifie avec succes.', 'success');
         },
-        error: (err: any) => {
-          this.error = err.error?.message || 'Modification impossible: créneau ou salle indisponible.';
+        error: () => {
+          this.setMessage('Modification impossible: creneau ou salle indisponible.', 'error');
         },
       });
   }
 
   cancel(id: number): void {
     this.saving = true;
-    this.error = '';
-    this.success = '';
-    
-    this.api.cancelAppointment(id)
-      .pipe(finalize(() => {
-        this.saving = false;
-        this.cdr.detectChanges();
-      }))
-      .subscribe({
+    this.message = '';
+    this.api.cancelAppointment(id).subscribe({
       next: (updated) => {
         this.appointments = this.appointments.map((appointment) =>
           appointment.id === id ? this.toAppointmentRow(updated) : appointment,
         );
-        this.success = 'Rendez-vous annulé avec succès.';
+        this.saving = false;
+        this.setMessage('Rendez-vous annule avec succes.', 'success');
       },
       error: () => {
-        this.error = 'Annulation impossible.';
+        this.saving = false;
+        this.setMessage('Annulation impossible.', 'error');
       },
     });
   }
 
   confirm(id: number): void {
     this.saving = true;
-    this.error = '';
-    this.success = '';
-    
-    this.api.confirmAppointment(id)
-      .pipe(finalize(() => {
-        this.saving = false;
-        this.cdr.detectChanges();
-      }))
-      .subscribe({
+    this.message = '';
+    this.api.confirmAppointment(id).subscribe({
       next: (updated) => {
         this.appointments = this.appointments.map((appointment) =>
           appointment.id === id ? this.toAppointmentRow(updated) : appointment,
         );
-        this.success = 'Rendez-vous confirmé avec succès.';
+        this.saving = false;
+        this.setMessage('Rendez-vous confirme avec succes.', 'success');
       },
       error: () => {
-        this.error = 'Confirmation impossible.';
+        this.saving = false;
+        this.setMessage('Confirmation impossible.', 'error');
       },
     });
   }
 
-  // --- PERMISSIONS ---
-  
   get canModifyAppointments(): boolean {
     const role = this.authService.currentUser()?.role;
     return role === 'SECRETARY' || role === 'ADMIN';
-  }
-
-  get canCancelAppointments(): boolean {
-    const role = this.authService.currentUser()?.role;
-    // Patients should be allowed to cancel their own appointments!
-    return role === 'PATIENT' || role === 'SECRETARY' || role === 'ADMIN';
   }
 
   get canConfirmAppointments(): boolean {
@@ -192,17 +142,37 @@ export class Appointments implements OnInit {
     return role === 'DOCTOR' || role === 'SECRETARY' || role === 'ADMIN';
   }
 
-  // --- HELPERS ---
+  get visibleAppointments(): AppointmentRow[] {
+    if (this.activeTab === 'A confirmer') {
+      return this.appointments.filter((appointment) => appointment.status === 'PENDING');
+    }
+
+    if (this.activeTab === 'Historique') {
+      return this.appointments.filter((appointment) => this.isPast(appointment) || appointment.status === 'CANCELLED');
+    }
+
+    return this.appointments.filter((appointment) => !this.isPast(appointment) && appointment.status !== 'CANCELLED');
+  }
+
+  get upcomingCount(): number {
+    return this.appointments.filter((appointment) => !this.isPast(appointment) && appointment.status !== 'CANCELLED').length;
+  }
+
+  get pendingCount(): number {
+    return this.appointments.filter((appointment) => appointment.status === 'PENDING').length;
+  }
+
+  get historyCount(): number {
+    return this.appointments.filter((appointment) => this.isPast(appointment) || appointment.status === 'CANCELLED').length;
+  }
 
   private loadAppointments(): void {
     const user = this.authService.currentUser();
     this.loading = true;
     this.error = '';
-    
     const now = new Date();
     const from = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).toISOString().slice(0, 19);
     const to = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()).toISOString().slice(0, 19);
-    
     const request =
       user?.role === 'PATIENT'
         ? this.api.getPatientAppointments(user.userId)
@@ -210,14 +180,11 @@ export class Appointments implements OnInit {
           ? this.api.getDoctorAppointments(user.userId, from, to)
           : this.api.getAppointments();
 
-    request.pipe(finalize(() => {
-      this.loading = false;
-      this.cdr.detectChanges();
-    })).subscribe({
+    request.pipe(finalize(() => (this.loading = false))).subscribe({
       next: (items) => {
         this.appointments = items.map((appointment) => this.toAppointmentRow(appointment));
         if (!items.length) {
-          this.error = 'Aucun rendez-vous trouvé.';
+          this.setMessage('Aucun rendez-vous trouve.', 'info');
         }
       },
       error: () => {
@@ -232,10 +199,9 @@ export class Appointments implements OnInit {
     const doctorUser = appointment.doctor?.user;
     const patient = appointment.patient;
     const status = appointment.status ?? 'PENDING';
-    
     return {
       id: appointment.id,
-      doctor: doctorUser ? `Dr. ${doctorUser.firstname} ${doctorUser.lastname}` : 'Médecin',
+      doctor: doctorUser ? `Dr. ${doctorUser.firstname} ${doctorUser.lastname}` : 'Medecin',
       patient: `${patient?.firstName ?? patient?.user?.firstname ?? 'Patient'} ${patient?.lastName ?? patient?.user?.lastname ?? ''}`.trim(),
       specialty: appointment.doctor?.specialty ?? 'Consultation',
       date: date.toLocaleDateString('fr-MA'),
@@ -251,8 +217,21 @@ export class Appointments implements OnInit {
   }
 
   private statusTone(status: string): StatusTone {
-    if (status === 'CONFIRMED') return 'green';
-    if (status === 'CANCELLED') return 'red';
+    if (status === 'CONFIRMED') {
+      return 'green';
+    }
+    if (status === 'CANCELLED') {
+      return 'red';
+    }
     return 'yellow';
+  }
+
+  private setMessage(message: string, type: 'success' | 'error' | 'info'): void {
+    this.message = message;
+    this.messageType = type;
+  }
+
+  private isPast(appointment: AppointmentRow): boolean {
+    return new Date(`${appointment.isoDate}T${appointment.time}:00`).getTime() < Date.now();
   }
 }

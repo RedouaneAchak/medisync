@@ -1,12 +1,11 @@
 <ion-content [fullscreen]="true" class="notif-content">
-
-  <!-- Header -->
   <div class="notif-header">
     <div class="app-name">MediSync</div>
     <div class="header-title">Notifications</div>
   </div>
 
   <div class="scroll-content">
+    <div class="section-label" *ngIf="error">{{ error }}</div>
 
     <div class="section-label">Aujourd'hui</div>
 
@@ -38,7 +37,6 @@
 
     <div style="height: 80px;"></div>
   </div>
-
 </ion-content>
 
 <app-tab-bar currentPage="notifications"></app-tab-bar>

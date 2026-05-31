@@ -1,5 +1,5 @@
 <section class="page-title compact">
-  <span class="eyebrow">Planning médical</span>
+  <span class="eyebrow">Planning medical</span>
   <h1>Rendez-vous</h1>
 </section>
 
@@ -9,19 +9,36 @@
   }
 </div>
 
+<section class="stats-grid three">
+  <article class="stat-card">
+    <span>A venir</span>
+    <strong>{{ upcomingCount }}</strong>
+    <small>Rendez-vous futurs confirmes ou en attente</small>
+  </article>
+  <article class="stat-card">
+    <span>A confirmer</span>
+    <strong>{{ pendingCount }}</strong>
+    <small>Actions medecin et secretariat</small>
+  </article>
+  <article class="stat-card">
+    <span>Historique</span>
+    <strong>{{ historyCount }}</strong>
+    <small>Consultations passees ou annulees</small>
+  </article>
+</section>
+
 <section class="section-panel">
   @if (error) {
-    <p class="muted tone-red">{{ error }}</p>
+    <p class="muted">{{ error }}</p>
   }
-  @if (success) {
-    <p class="muted tone-green">{{ success }}</p>
+  @if (message) {
+    <p class="muted" [class.tone-green]="messageType === 'success'" [class.tone-red]="messageType === 'error'">{{ message }}</p>
   }
   @if (loading) {
-    <p class="muted">Chargement des rendez-vous en cours...</p>
+    <p class="muted">Chargement des rendez-vous...</p>
   }
-  
   <div class="table-list">
-    @for (appointment of filteredAppointments; track appointment.id) {
+    @for (appointment of visibleAppointments; track appointment.id) {
       <div class="list-row appointment-row">
         <div>
           <strong>{{ appointment.date }} · {{ appointment.time }}</strong>
@@ -32,20 +49,18 @@
           <span>{{ appointment.specialty }}</span>
         </div>
         <span class="badge" [class]="'tone-' + appointment.tone">{{ appointment.status }}</span>
-        
         <div class="inline-actions">
-          @if (canModifyAppointments && appointment.status !== 'CANCELLED') {
-            <button type="button" class="btn small outline" (click)="startEdit(appointment)" [disabled]="saving">Modifier</button>
+          @if (canModifyAppointments) {
+            <button type="button" (click)="startEdit(appointment)" [disabled]="saving">Modifier</button>
           }
-          @if (canConfirmAppointments && appointment.status === 'PENDING') {
-            <button type="button" class="btn small primary" (click)="confirm(appointment.id)" [disabled]="saving">Confirmer</button>
+          @if (canConfirmAppointments) {
+            <button type="button" (click)="confirm(appointment.id)" [disabled]="saving">Confirmer</button>
           }
-          @if (canCancelAppointments && appointment.status !== 'CANCELLED') {
-            <button type="button" class="btn small outline tone-red" (click)="cancel(appointment.id)" [disabled]="saving">Annuler</button>
+          @if (canModifyAppointments) {
+            <button type="button" (click)="cancel(appointment.id)" [disabled]="saving">Annuler</button>
           }
         </div>
       </div>
-      
       @if (editingId === appointment.id) {
         <form class="form-panel" (ngSubmit)="saveEdit()">
           <label>
@@ -57,7 +72,7 @@
             <input [(ngModel)]="editForm.time" name="time" type="time" required />
           </label>
           <label>
-            Durée
+            Duree
             <select [(ngModel)]="editForm.durationMinutes" name="durationMinutes">
               <option [ngValue]="15">15 min</option>
               <option [ngValue]="30">30 min</option>
@@ -79,7 +94,7 @@
       }
     } @empty {
       @if (!loading) {
-        <p class="muted">Aucun rendez-vous dans cette catégorie.</p>
+        <p class="muted">Aucun rendez-vous dans cet onglet.</p>
       }
     }
   </div>

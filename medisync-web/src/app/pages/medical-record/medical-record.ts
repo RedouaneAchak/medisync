@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { BackendConsultation, MedisyncApiService } from '../../services/medisync-api.service';
+import { BackendAppointment, BackendConsultation, MedisyncApiService } from '../../services/medisync-api.service';
 
 interface ConsultationRow {
   id: string;
@@ -14,6 +14,12 @@ interface ConsultationRow {
   files: Record<string, unknown>[];
 }
 
+interface DoctorPatientOption {
+  id: number;
+  name: string;
+  appointmentLabel: string;
+}
+
 @Component({
   selector: 'app-medical-record',
   imports: [FormsModule],
@@ -21,9 +27,11 @@ interface ConsultationRow {
 })
 export class MedicalRecord implements OnInit {
   consultations: ConsultationRow[] = [];
-  documents: { name: string, url: string }[] = [];
+  documents: string[] = [];
   editingId: string | null = null;
-
+  doctorPatients: DoctorPatientOption[] = [];
+  selectedDoctorPatientId = 0;
+  
   // Forms
   consultationForm = {
     patientId: 0,
@@ -31,7 +39,7 @@ export class MedicalRecord implements OnInit {
     observation: '',
     prescriptionsText: '',
   };
-
+  
   // Updated Document Form for physical files
   selectedFile: File | null = null;
   documentForm = {
@@ -41,6 +49,7 @@ export class MedicalRecord implements OnInit {
 
   // State Management (The "Bulletproof" Pattern)
   loadingData = false;
+  loadingPatients = false;
   savingConsultation = false;
   savingDocument = false;
 
@@ -54,7 +63,7 @@ export class MedicalRecord implements OnInit {
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
     private readonly cdr: ChangeDetectorRef // Prevents the UI sleep bug!
-  ) { }
+  ) {}
 
   ngOnInit(): void {
     const user = this.authService.currentUser();
@@ -63,7 +72,16 @@ export class MedicalRecord implements OnInit {
     this.consultationForm.patientId = user.role === 'PATIENT' ? user.userId : 0;
     this.consultationForm.doctorId = user.role === 'DOCTOR' ? user.userId : 0;
 
+    if (user.role === 'DOCTOR') {
+      this.loadDoctorPatients(user.userId);
+      return;
+    }
+
     this.loadMedicalHistory(user);
+  }
+
+  get isDoctorView(): boolean {
+    return this.authService.currentUser()?.role === 'DOCTOR';
   }
 
   private loadMedicalHistory(user: any): void {
@@ -120,9 +138,9 @@ export class MedicalRecord implements OnInit {
 
     const request = this.editingId
       ? this.api.updateConsultation(this.editingId, {
-        observation: payload.observation,
-        prescriptions: payload.prescriptions,
-      })
+          observation: payload.observation,
+          prescriptions: payload.prescriptions,
+        })
       : this.api.createConsultation(payload);
 
     request.pipe(
@@ -136,7 +154,7 @@ export class MedicalRecord implements OnInit {
         this.consultations = this.editingId
           ? this.consultations.map((item) => (item.id === row.id ? row : item))
           : [row, ...this.consultations];
-
+        
         this.formSuccess = this.editingId ? 'Consultation mise à jour.' : 'Consultation créée avec succès.';
         this.editingId = null;
         this.consultationForm.observation = '';
@@ -162,13 +180,22 @@ export class MedicalRecord implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll back to form
   }
 
-  // Triggered when the user selects a file from their OS window
+  onDoctorPatientChange(): void {
+    if (!this.selectedDoctorPatientId) {
+      return;
+    }
+
+    this.consultationForm.patientId = this.selectedDoctorPatientId;
+    this.loadConsultationsForPatient(this.selectedDoctorPatientId);
+  }
+
+// Triggered when the user selects a file from their OS window
   onFileSelected(event: any): void {
     const file = event.target.files[0];
-
+    
     if (file) {
       // 50 MB in bytes (50 * 1024 * 1024)
-      const MAX_SIZE_BYTES = 52428800;
+      const MAX_SIZE_BYTES = 52428800; 
 
       if (file.size > MAX_SIZE_BYTES) {
         this.docError = `Le fichier est trop volumineux (${(file.size / 1048576).toFixed(1)} MB). La taille maximale est de 50 MB.`;
@@ -185,9 +212,9 @@ export class MedicalRecord implements OnInit {
   addDocument(): void {
     this.docError = '';
     this.docSuccess = '';
-
+    
     const user = this.authService.currentUser();
-
+    
     // Validate that a physical file is actually selected
     if (!user || !this.selectedFile) {
       this.docError = 'Veuillez sélectionner un fichier sur votre ordinateur.';
@@ -205,7 +232,7 @@ export class MedicalRecord implements OnInit {
     const formData = new FormData();
     formData.append('file', this.selectedFile);
     formData.append('fileType', this.documentForm.fileType);
-
+    
     if (user.role === 'PATIENT' || user.role === 'ADMIN') {
       formData.append('doctorId', String(this.consultationForm.doctorId));
     }
@@ -235,14 +262,10 @@ export class MedicalRecord implements OnInit {
         } else {
           // General patient document fallback
           if (this.selectedFile) {
-            // FIX: We now push an object with both 'name' and 'url' instead of just a string
-            this.documents.unshift({
-              name: this.selectedFile.name,
-              url: response?.fileUrl ? String(response.fileUrl) : '#'
-            });
+             this.documents.unshift(this.selectedFile.name);
           }
         }
-
+        
         // Reset the file input
         this.selectedFile = null;
         this.docSuccess = 'Fichier uploadé avec succès.';
@@ -280,19 +303,103 @@ export class MedicalRecord implements OnInit {
 
   private refreshDocuments(): void {
     const backendDocuments = this.consultations.flatMap((consultation) =>
-      consultation.files.map((file) => ({
-        name: String(file['fileName'] ?? 'Document médical'),
-        // Add the base backend URL if needed, e.g. http://localhost:8080
-        url: String(file['fileUrl'] ?? '#')
-      }))
+      consultation.files.map((file) => String(file['fileName'] ?? file['name'] ?? 'Document médical')),
     );
-
     if (backendDocuments.length) {
       this.documents = backendDocuments;
     }
+
     const firstConsultation = this.consultations[0];
     if (firstConsultation && !this.documentForm.consultationId) {
       this.documentForm.consultationId = firstConsultation.id;
     }
+  }
+
+  private loadDoctorPatients(doctorId: number): void {
+    this.loadingPatients = true;
+    this.formError = '';
+
+    const from = new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString().slice(0, 19);
+    const to = new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().slice(0, 19);
+
+    this.api
+      .getDoctorAppointments(doctorId, from, to)
+      .pipe(
+        finalize(() => {
+          this.loadingPatients = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (appointments) => {
+          this.doctorPatients = this.toDoctorPatientOptions(appointments);
+          this.selectedDoctorPatientId = this.doctorPatients[0]?.id ?? 0;
+          this.consultationForm.patientId = this.selectedDoctorPatientId;
+
+          if (!this.selectedDoctorPatientId) {
+            this.consultations = [];
+            this.documents = [];
+            this.formError = 'Aucun patient n est encore rattache a ce medecin dans le planning.';
+            return;
+          }
+
+          this.loadConsultationsForPatient(this.selectedDoctorPatientId);
+        },
+        error: () => {
+          this.formError = 'Impossible de charger les patients du planning medecin.';
+        },
+      });
+  }
+
+  private loadConsultationsForPatient(patientId: number): void {
+    this.loadingData = true;
+    this.formError = '';
+
+    this.api
+      .getConsultationsForPatient(patientId)
+      .pipe(
+        finalize(() => {
+          this.loadingData = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (items) => {
+          this.consultations = items.map((consultation) => this.toConsultationRow(consultation));
+          this.refreshDocuments();
+          if (!items.length) {
+            this.formSuccess = '';
+            this.formError = 'Aucune consultation enregistree pour ce patient.';
+          }
+        },
+        error: () => {
+          this.consultations = [];
+          this.documents = [];
+          this.formError = 'Chargement du dossier patient impossible.';
+        },
+      });
+  }
+
+  private toDoctorPatientOptions(appointments: BackendAppointment[]): DoctorPatientOption[] {
+    const uniquePatients = new Map<number, DoctorPatientOption>();
+
+    appointments.forEach((appointment) => {
+      const patientId = appointment.patient?.id;
+      if (!patientId || uniquePatients.has(patientId)) {
+        return;
+      }
+
+      const firstName = appointment.patient?.firstName ?? appointment.patient?.user?.firstname ?? 'Patient';
+      const lastName = appointment.patient?.lastName ?? appointment.patient?.user?.lastname ?? `#${patientId}`;
+      const labelDate = new Date(appointment.dateTime).toLocaleDateString('fr-MA');
+
+      uniquePatients.set(patientId, {
+        id: patientId,
+        name: `${firstName} ${lastName}`.trim(),
+        appointmentLabel: `${appointment.appointmentType ?? 'Consultation'} · ${labelDate}`,
+      });
+    });
+
+    return Array.from(uniquePatients.values());
   }
 }

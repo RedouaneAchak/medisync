@@ -1,7 +1,9 @@
-import { Component, ChangeDetectorRef, OnInit } from '@angular/core'; // <-- 1. Import OnInit
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { GoogleAuthService } from '../../services/google-auth.service';
+import { GoogleCredentialResponse } from '../../core/google-identity.types';
 
 @Component({
   selector: 'app-login',
@@ -9,7 +11,9 @@ import { AuthService } from '../../services/auth.service';
   imports: [FormsModule],
   templateUrl: './login.html',
 })
-export class Login implements OnInit { // <-- 2. Add implements OnInit
+export class Login {
+  @ViewChild('googleButtonHost') googleButtonHost?: ElementRef<HTMLDivElement>;
+
   email = '';
   password = '';
   fullName = '';
@@ -18,30 +22,32 @@ export class Login implements OnInit { // <-- 2. Add implements OnInit
   mode: 'signin' | 'signup' = 'signin';
   error = '';
   loading = false;
+  googleLoading = false;
+  googleEnabled = false;
 
   constructor(
     private readonly authService: AuthService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
+    private readonly googleAuthService: GoogleAuthService,
     private cdr: ChangeDetectorRef
   ) {}
 
-  // --- 3. ADD THIS ENTIRE METHOD TO CATCH THE GOOGLE TOKEN ---
-  ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      const token = params['token'];
-      
-      if (token) {
-        console.log("Token JWT reçu de Google !");
-        
-        // Save the token. Make sure the key ('token') matches what your AuthService/Interceptor expects!
-        localStorage.setItem('token', token); 
-        
-        // Force the UI to update and navigate securely to the profile
+  ngAfterViewInit(): void {
+    this.googleEnabled = this.googleAuthService.isConfigured;
+    if (!this.googleEnabled || !this.googleButtonHost) {
+      this.cdr.detectChanges();
+      return;
+    }
+
+    void this.googleAuthService
+      .renderButton(this.googleButtonHost.nativeElement, (response) => this.handleGoogleCredential(response))
+      .then(() => this.googleAuthService.prompt())
+      .catch((error: unknown) => {
+        console.error('Google button render failed:', error);
+        this.error = 'Connexion Google indisponible pour le moment.';
         this.cdr.detectChanges();
-        void this.router.navigateByUrl('/profile');
-      }
-    });
+      });
   }
 
   submit(): void {
@@ -60,8 +66,10 @@ export class Login implements OnInit { // <-- 2. Add implements OnInit
     request.subscribe({
       next: () => {
         this.loading = false;
-        this.cdr.detectChanges(); 
-        void this.router.navigateByUrl(this.route.snapshot.queryParamMap.get('returnUrl') ?? '/profile');
+        this.cdr.detectChanges();
+        void this.router.navigateByUrl(
+          this.route.snapshot.queryParamMap.get('returnUrl') ?? this.authService.defaultRouteFor(),
+        );
       },
       error: (err) => {
         this.loading = false;
@@ -73,12 +81,37 @@ export class Login implements OnInit { // <-- 2. Add implements OnInit
             this.error = 'Erreur serveur. Vérifiez que le backend est démarré.';
         }
         
-        this.cdr.detectChanges(); 
+        this.cdr.detectChanges();
       },
     });
   }
 
-  loginWithGoogle(): void {
-    window.location.href = 'https://localhost:8443/oauth2/authorization/google';
+  private handleGoogleCredential(response: GoogleCredentialResponse): void {
+    if (!response.credential) {
+      this.error = 'Réponse Google invalide.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.error = '';
+    this.googleLoading = true;
+
+    this.authService.loginWithGoogle(response.credential).subscribe({
+      next: () => {
+        this.googleLoading = false;
+        this.cdr.detectChanges();
+        void this.router.navigateByUrl(
+          this.route.snapshot.queryParamMap.get('returnUrl') ?? this.authService.defaultRouteFor(),
+        );
+      },
+      error: (err) => {
+        this.googleLoading = false;
+        console.error('Google login failed:', err);
+        this.error =
+          err.error?.message ??
+          (typeof err.error === 'string' ? err.error : 'Connexion Google impossible. Vérifiez la configuration.');
+        this.cdr.detectChanges();
+      },
+    });
   }
 }

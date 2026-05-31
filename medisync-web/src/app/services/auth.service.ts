@@ -2,6 +2,8 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
 
+import { getRuntimeConfig } from '../core/runtime-config';
+
 export interface AuthUser {
   userId: number;
   firstname: string;
@@ -18,6 +20,7 @@ export interface AuthResponse extends AuthUser {
 export class AuthService {
   private readonly tokenKey = 'medisync_token';
   private readonly userKey = 'medisync_user';
+  private readonly apiBaseUrl = getRuntimeConfig().apiBaseUrl;
 
   readonly currentUser = signal<AuthUser | null>(this.readStoredUser());
 
@@ -28,13 +31,19 @@ export class AuthService {
   }
 
   login(email: string, password: string) {
-    return this.http.post<AuthResponse>('/api/auth/login', { email, password }).pipe(
+    return this.http.post<AuthResponse>(this.endpoint('/api/auth/login'), { email, password }).pipe(
       tap((response) => this.storeSession(response)),
     );
   }
 
   register(firstname: string, lastname: string, email: string, password: string, phone: string) {
-    return this.http.post<AuthResponse>('/api/auth/register', { firstname, lastname, email, password, phone }).pipe(
+    return this.http
+      .post<AuthResponse>(this.endpoint('/api/auth/register'), { firstname, lastname, email, password, phone })
+      .pipe(tap((response) => this.storeSession(response)));
+  }
+
+  loginWithGoogle(idToken: string) {
+    return this.http.post<AuthResponse>(this.endpoint('/api/auth/google'), { idToken }).pipe(
       tap((response) => this.storeSession(response)),
     );
   }
@@ -56,6 +65,24 @@ export class AuthService {
     this.currentUser.set(updated);
   }
 
+  defaultRouteFor(user: AuthUser | null = this.currentUser()): string {
+    if (!user) {
+      return '/login';
+    }
+
+    switch (user.role) {
+      case 'DOCTOR':
+        return '/appointments';
+      case 'SECRETARY':
+        return '/patients';
+      case 'ADMIN':
+        return '/admin';
+      case 'PATIENT':
+      default:
+        return '/profile';
+    }
+  }
+
   private storeSession(response: AuthResponse): void {
     const { token, ...user } = response;
     localStorage.setItem(this.tokenKey, token);
@@ -75,5 +102,9 @@ export class AuthService {
       localStorage.removeItem(this.userKey);
       return null;
     }
+  }
+
+  private endpoint(path: string): string {
+    return `${this.apiBaseUrl}${path}`;
   }
 }
