@@ -1,8 +1,7 @@
 <section class="page-title">
   <span class="eyebrow">Dossier patient</span>
   <h1>Dossier médical</h1>
-  <p>Consultations, observations, ordonnances électroniques et fichiers
-    médicaux.</p>
+  <p>Consultations, observations, ordonnances électroniques et fichiers médicaux.</p>
 </section>
 
 <section class="content-grid">
@@ -19,53 +18,75 @@
     <p class="muted">Chargement du dossier médical en cours...</p>
     }
 
-    @if (isDoctorView && doctorPatients.length) {
+    @if (isDoctorView) {
     <div class="form-panel" style="margin-bottom: 1rem;">
+      
+      @if (doctorPatients.length) {
       <label>
         Patient du planning
         <select [(ngModel)]="selectedDoctorPatientId" name="selectedDoctorPatientId" (ngModelChange)="onDoctorPatientChange()">
+          <option [ngValue]="0">-- Sélectionner --</option>
           @for (patient of doctorPatients; track patient.id) {
           <option [ngValue]="patient.id">{{ patient.name }} - {{ patient.appointmentLabel }}</option>
           }
         </select>
       </label>
+      }
+
+      <hr style="margin: 1rem 0; border-top: 1px dashed #ccc;">
+
+      <label>
+        Recherche manuelle de patient
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+          <input [(ngModel)]="searchQuery" name="searchQuery" type="text" placeholder="Entrez le nom du patient..." style="flex: 1;" (keyup.enter)="searchPatientByName()" />
+          <button type="button" class="btn outline" (click)="searchPatientByName()" [disabled]="isSearching">
+            {{ isSearching ? 'Recherche...' : 'Chercher' }}
+          </button>
+        </div>
+      </label>
+      
+      @if (searchResults.length > 0) {
+      <div style="border: 1px solid #ccc; border-radius: 4px; margin-top: 0.5rem; max-height: 200px; overflow-y: auto; background-color: white;">
+        @for (result of searchResults; track result.id) {
+        <div style="padding: 0.75rem; border-bottom: 1px solid #eee; cursor: pointer;" 
+             (click)="selectSearchedPatient(result.id, result.name)" 
+             onmouseover="this.style.backgroundColor='#f9f9f9'" 
+             onmouseout="this.style.backgroundColor='transparent'">
+          <strong>{{ result.name }}</strong> <br>
+          <small class="muted">{{ result.info }}</small>
+        </div>
+        }
+      </div>
+      }
+      
     </div>
     }
-
     @if (canManageConsultations && !loadingData) {
     <form class="form-panel" (ngSubmit)="saveConsultation()">
       @if (!isDoctorView) {
       <label>
         ID patient
-        <input [(ngModel)]="consultationForm.patientId" name="patientId"
-          type="number" required />
+        <input [(ngModel)]="consultationForm.patientId" name="patientId" type="number" required />
       </label>
-      }
-      @if (!isDoctorView) {
       <label>
         ID médecin
-        <input [(ngModel)]="consultationForm.doctorId" name="doctorId"
-          type="number" required />
+        <input [(ngModel)]="consultationForm.doctorId" name="doctorId" type="number" required />
       </label>
       }
       <label>
         Observation
-        <textarea [(ngModel)]="consultationForm.observation" name="observation"
-          rows="4" required></textarea>
+        <textarea [(ngModel)]="consultationForm.observation" name="observation" rows="4" required></textarea>
       </label>
       <label>
         Prescriptions
-        <textarea [(ngModel)]="consultationForm.prescriptionsText"
-          name="prescriptions" rows="4"
-          placeholder="Une prescription par ligne"></textarea>
+        <textarea [(ngModel)]="consultationForm.prescriptionsText" name="prescriptions" rows="4" placeholder="Une prescription par ligne"></textarea>
       </label>
 
-      <button class="btn primary" type="submit" [disabled]="savingConsultation">
+      <button class="btn primary" type="submit" [disabled]="savingConsultation || (!consultationForm.patientId && isDoctorView)">
         @if (savingConsultation) {
         Enregistrement...
         } @else {
-        {{ editingId ? 'Mettre à jour la consultation' :
-        'Ajouter la consultation' }}
+        {{ editingId ? 'Mettre à jour la consultation' : 'Ajouter la consultation' }}
         }
       </button>
     </form>
@@ -84,8 +105,7 @@
         }
       </div>
       @if (canManageConsultations) {
-      <button type="button" class="btn small"
-        (click)="editConsultation(consultation)">Modifier</button>
+      <button type="button" class="btn small" (click)="editConsultation(consultation)">Modifier</button>
       }
     </div>
     } @empty {
@@ -108,8 +128,7 @@
         Consultation
         <select [(ngModel)]="documentForm.consultationId" name="consultationId">
           @for (consultation of consultations; track consultation.id) {
-          <option [ngValue]="consultation.id">{{ consultation.date }} - {{
-            consultation.doctor }}</option>
+          <option [ngValue]="consultation.id">{{ consultation.date }} - {{ consultation.doctor }}</option>
           }
         </select>
       </label>
@@ -139,8 +158,7 @@
         class="btn outline full"
         style="margin-bottom: 1rem;"
         (click)="fileInput.click()">
-        {{ selectedFile ? '📎 ' + selectedFile.name :
-        '📁 Parcourir mon ordinateur' }}
+        {{ selectedFile ? '📎 ' + selectedFile.name : '📁 Parcourir mon ordinateur' }}
       </button>
 
       @if (docError) {
@@ -150,15 +168,14 @@
       <p class="muted tone-green">{{ docSuccess }}</p>
       }
 
-      <button class="btn primary full" type="submit"
-        [disabled]="savingDocument || !selectedFile">
+      <button class="btn primary full" type="submit" [disabled]="savingDocument || !selectedFile || (isDoctorView && !consultationForm.patientId)">
         {{ savingDocument ? 'Upload en cours...' : 'Uploader le document' }}
       </button>
     </form>
 
     @for (document of documents; track document) {
     <div class="doc-row">
-      <span class="file-icon">PDF</span>
+      <span class="file-icon">DOC</span>
       <strong>{{ document }}</strong>
     </div>
     } @empty {

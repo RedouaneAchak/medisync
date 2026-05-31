@@ -1,5 +1,5 @@
 package com.medisync.service;
-
+import org.springframework.stereotype.Service;
 import com.medisync.model.nosql.AuditLog;
 import com.medisync.model.nosql.Consultation;
 import com.medisync.model.enums.PatientCategory;
@@ -20,7 +20,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Optional;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
+import java.util.Map;    
+import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
@@ -67,6 +68,12 @@ public class PatientService {
 
         // 4. Save safely without crashing
         return patientRepository.save(existing);
+    }
+    public List<Patient> searchPatientsByName(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return patientRepository.searchByName(query.trim());
     }
 
     // ── Rendez-vous ───────────────────────────────────────────────────────────

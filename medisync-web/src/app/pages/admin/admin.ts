@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   BackendAppointment,
@@ -45,7 +45,7 @@ interface AdminAppointmentRow {
   imports: [FormsModule],
   templateUrl: './admin.html',
 })
-export class Admin {
+export class Admin implements OnInit { // 1. Implémentation de OnInit
   doctors: AdminDoctorRow[] = [];
   patients: AdminPatientRow[] = [];
   appointments: AdminAppointmentRow[] = [];
@@ -66,7 +66,13 @@ export class Admin {
     equipmentType: '',
   };
 
-  constructor(private readonly api: MedisyncApiService) {
+  constructor(
+    private readonly api: MedisyncApiService,
+    private readonly cdr: ChangeDetectorRef // 2. Injection du ChangeDetectorRef
+  ) {}
+
+  // 3. Déplacement du chargement initial dans ngOnInit
+  ngOnInit(): void {
     this.loadDashboardData();
   }
 
@@ -74,33 +80,39 @@ export class Admin {
     this.api.getDoctors().subscribe({
       next: (items) => {
         this.doctors = items.map((doctor) => this.toDoctorCard(doctor));
+        this.cdr.detectChanges(); // 4. Forçage du rafraîchissement
       },
       error: () => {
         this.error = 'Connectez-vous avec un compte ADMIN pour charger le tableau de bord backend.';
+        this.cdr.detectChanges(); // 4. Forçage du rafraîchissement
       },
     });
 
     this.api.getPatients().subscribe({
       next: (items) => {
         this.patients = items.map((patient) => this.toPatientRow(patient));
+        this.cdr.detectChanges(); // 4. Forçage du rafraîchissement
       },
     });
 
     this.api.getAppointments().subscribe({
       next: (items) => {
         this.appointments = items.map((appointment) => this.toAppointmentRow(appointment));
+        this.cdr.detectChanges(); // 4. Forçage du rafraîchissement
       },
     });
 
     this.api.getAdminUsers().subscribe({
       next: (items) => {
         this.users = items;
+        this.cdr.detectChanges(); // 4. Forçage du rafraîchissement
       },
     });
 
     this.api.getRoomsForAdmin().subscribe({
       next: (items) => {
         this.rooms = items;
+        this.cdr.detectChanges(); // 4. Forçage du rafraîchissement
       },
     });
   }
@@ -119,9 +131,11 @@ export class Admin {
           role: 'PATIENT',
         };
         this.loadDashboardData();
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
       error: () => {
         this.message = 'Creation utilisateur impossible. Verifiez le role, l email et vos droits ADMIN.';
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
     });
   }
@@ -133,9 +147,11 @@ export class Admin {
         this.users = this.users.filter((user) => user.id !== id);
         this.message = 'Utilisateur supprime.';
         this.loadDashboardData();
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
       error: () => {
         this.message = 'Suppression impossible: cet utilisateur peut etre lie a un profil ou a des donnees.';
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
     });
   }
@@ -147,9 +163,11 @@ export class Admin {
         this.rooms = [...this.rooms, room];
         this.message = `Salle ${room.roomNumber} creee.`;
         this.newRoom = { roomNumber: '', equipmentType: '' };
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
       error: () => {
         this.message = 'Creation de salle impossible. Verifiez vos droits ADMIN.';
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
     });
   }
@@ -160,9 +178,11 @@ export class Admin {
       next: () => {
         this.rooms = this.rooms.filter((room) => room.id !== id);
         this.message = 'Salle supprimee.';
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
       error: () => {
         this.message = 'Suppression de salle impossible: elle peut etre liee a un rendez-vous.';
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
     });
   }

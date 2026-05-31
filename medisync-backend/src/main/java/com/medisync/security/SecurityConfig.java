@@ -51,6 +51,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/doctor").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/doctor/search").permitAll()
 
+                // ---> ROUTE AJOUTÉE POUR LA RECHERCHE PAR LE MÉDECIN/SECRÉTAIRE <---
+                .requestMatchers("/api/patient/search").hasAnyAuthority(
+                    "DOCTOR", "SECRETARY", "ADMIN", "ROLE_DOCTOR", "ROLE_SECRETARY", "ROLE_ADMIN"
+                )
+
                 .requestMatchers("/api/admin/**").hasAnyAuthority(
                     "ADMIN", "ROLE_ADMIN"
                 )

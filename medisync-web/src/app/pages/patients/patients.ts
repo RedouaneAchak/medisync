@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BackendPatient, MedisyncApiService } from '../../services/medisync-api.service';
 
@@ -16,7 +16,7 @@ interface PatientRow {
   imports: [FormsModule],
   templateUrl: './patients.html',
 })
-export class Patients {
+export class Patients implements OnInit {
   patients: PatientRow[] = [];
   query = '';
   error = '';
@@ -33,7 +33,13 @@ export class Patients {
     companyName: '',
   };
 
-  constructor(private readonly api: MedisyncApiService) {
+  constructor(
+    private readonly api: MedisyncApiService,
+    private readonly cdr: ChangeDetectorRef // 1. Injection du ChangeDetectorRef
+  ) {}
+
+  // 2. Déplacement du chargement initial dans ngOnInit
+  ngOnInit(): void {
     this.loadPatients();
   }
 
@@ -59,9 +65,11 @@ export class Patients {
           category: 'ADULT',
           companyName: '',
         };
+        this.cdr.detectChanges(); // 3. Forçage du rafraîchissement
       },
       error: () => {
         this.message = 'Creation impossible. Verifiez l email, le numero SSN et vos droits SECRETARY/ADMIN.';
+        this.cdr.detectChanges(); // 3. Forçage du rafraîchissement
       },
     });
   }
@@ -70,9 +78,11 @@ export class Patients {
     this.api.getPatients().subscribe({
       next: (items) => {
         this.patients = items.map((patient) => this.toPatientRow(patient));
+        this.cdr.detectChanges(); // 3. Forçage du rafraîchissement
       },
       error: () => {
         this.error = 'Acces reserve au secretariat ou a l administration.';
+        this.cdr.detectChanges(); // 3. Forçage du rafraîchissement
       },
     });
   }

@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { BackendAppointment, BackendConsultation, MedisyncApiService } from '../../services/medisync-api.service';
+import { BackendAppointment, BackendConsultation, BackendPatient, MedisyncApiService } from '../../services/medisync-api.service';
 
 interface ConsultationRow {
   id: string;
@@ -32,6 +32,11 @@ export class MedicalRecord implements OnInit {
   doctorPatients: DoctorPatientOption[] = [];
   selectedDoctorPatientId = 0;
   
+  // Variables pour la recherche par NOM
+  searchQuery = '';
+  searchResults: { id: number; name: string; info: string }[] = [];
+  isSearching = false;
+  
   // Forms
   consultationForm = {
     patientId: 0,
@@ -40,20 +45,17 @@ export class MedicalRecord implements OnInit {
     prescriptionsText: '',
   };
   
-  // Updated Document Form for physical files
   selectedFile: File | null = null;
   documentForm = {
     consultationId: '',
     fileType: 'PDF',
   };
 
-  // State Management (The "Bulletproof" Pattern)
   loadingData = false;
   loadingPatients = false;
   savingConsultation = false;
   savingDocument = false;
 
-  // Split messages so the two forms don't overwrite each other
   formError = '';
   formSuccess = '';
   docError = '';
@@ -62,7 +64,7 @@ export class MedicalRecord implements OnInit {
   constructor(
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
-    private readonly cdr: ChangeDetectorRef // Prevents the UI sleep bug!
+    private readonly cdr: ChangeDetectorRef 
   ) {}
 
   ngOnInit(): void {
@@ -82,6 +84,53 @@ export class MedicalRecord implements OnInit {
 
   get isDoctorView(): boolean {
     return this.authService.currentUser()?.role === 'DOCTOR';
+  }
+
+  // Action lancée par le bouton "Chercher"
+  searchPatientByName(): void {
+    if (!this.searchQuery || this.searchQuery.trim().length < 2) {
+      this.formError = 'Veuillez entrer au moins 2 caractères.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.isSearching = true;
+    this.formError = '';
+    this.searchResults = [];
+
+    this.api.searchPatientsByName(this.searchQuery).pipe(
+      finalize(() => {
+        this.isSearching = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (patients) => {
+        this.searchResults = patients.map(p => ({
+          id: p.id,
+          name: `${p.firstName ?? p.user?.firstname ?? ''} ${p.lastName ?? p.user?.lastname ?? ''}`.trim(),
+          info: `SSN: ${p.socialSecurityNumber ?? 'N/A'} - Tel: ${p.phoneNumber ?? 'N/A'}`
+        }));
+        
+        if (this.searchResults.length === 0) {
+          this.formError = 'Aucun patient trouvé avec ce nom.';
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.formError = 'Erreur de recherche. Le compte DOCTOR n a peut-être pas accès à cette route.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // Action lancée quand le médecin clique sur un résultat
+  selectSearchedPatient(patientId: number, patientName: string): void {
+    this.consultationForm.patientId = patientId;
+    this.selectedDoctorPatientId = 0; // Désélectionne le planning
+    this.searchQuery = patientName; // Laisse le nom propre dans l'input
+    this.searchResults = []; // Cache les résultats
+    
+    this.loadConsultationsForPatient(patientId);
   }
 
   private loadMedicalHistory(user: any): void {
@@ -104,11 +153,13 @@ export class MedicalRecord implements OnInit {
       next: (items) => {
         this.consultations = items.map((consultation) => this.toConsultationRow(consultation));
         this.refreshDocuments();
+        this.cdr.detectChanges(); 
       },
       error: () => {
         this.consultations = [];
         this.documents = [];
         this.formError = 'Aucune consultation backend chargée pour ce patient.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -160,6 +211,7 @@ export class MedicalRecord implements OnInit {
         this.consultationForm.observation = '';
         this.consultationForm.prescriptionsText = '';
         this.refreshDocuments();
+        this.cdr.detectChanges(); 
       },
       error: (err: any) => {
         if (err.error && typeof err.error === 'string') {
@@ -169,6 +221,7 @@ export class MedicalRecord implements OnInit {
         } else {
           this.formError = 'Enregistrement impossible. Vérifiez vos droits et les identifiants.';
         }
+        this.cdr.detectChanges();
       },
     });
   }
@@ -177,7 +230,8 @@ export class MedicalRecord implements OnInit {
     this.editingId = consultation.id;
     this.consultationForm.observation = consultation.notes;
     this.consultationForm.prescriptionsText = consultation.prescriptions.join('\n');
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll back to form
+    window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    this.cdr.detectChanges(); 
   }
 
   onDoctorPatientChange(): void {
@@ -185,37 +239,36 @@ export class MedicalRecord implements OnInit {
       return;
     }
 
+    this.searchQuery = ''; // Vide la recherche manuelle si on utilise le menu
     this.consultationForm.patientId = this.selectedDoctorPatientId;
     this.loadConsultationsForPatient(this.selectedDoctorPatientId);
   }
 
-// Triggered when the user selects a file from their OS window
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     
     if (file) {
-      // 50 MB in bytes (50 * 1024 * 1024)
       const MAX_SIZE_BYTES = 52428800; 
 
       if (file.size > MAX_SIZE_BYTES) {
         this.docError = `Le fichier est trop volumineux (${(file.size / 1048576).toFixed(1)} MB). La taille maximale est de 50 MB.`;
-        this.selectedFile = null; // Reject the file
+        this.selectedFile = null; 
+        this.cdr.detectChanges();
         return;
       }
 
       this.selectedFile = file;
-      this.docError = ''; // Clear errors if it passes the size check
+      this.docError = ''; 
+      this.cdr.detectChanges(); 
     }
   }
 
-  // Completely rewritten for physical file uploads via FormData
   addDocument(): void {
     this.docError = '';
     this.docSuccess = '';
     
     const user = this.authService.currentUser();
     
-    // Validate that a physical file is actually selected
     if (!user || !this.selectedFile) {
       this.docError = 'Veuillez sélectionner un fichier sur votre ordinateur.';
       return;
@@ -228,7 +281,6 @@ export class MedicalRecord implements OnInit {
 
     this.savingDocument = true;
 
-    // Package the physical file and metadata into FormData
     const formData = new FormData();
     formData.append('file', this.selectedFile);
     formData.append('fileType', this.documentForm.fileType);
@@ -237,8 +289,6 @@ export class MedicalRecord implements OnInit {
       formData.append('doctorId', String(this.consultationForm.doctorId));
     }
 
-    // Call the new FormData methods in your API service
-    // (Ensure you added uploadConsultationFile and uploadPatientDocument to medisync-api.service.ts)
     const request =
       user.role === 'DOCTOR'
         ? (this.api as any).uploadConsultationFile(this.documentForm.consultationId, formData)
@@ -251,7 +301,6 @@ export class MedicalRecord implements OnInit {
       })
     ).subscribe({
       next: (response: any) => {
-        // If it returns a consultation, update the table
         if (response && response.id) {
           const row = this.toConsultationRow(response as BackendConsultation);
           const exists = this.consultations.some((item) => item.id === row.id);
@@ -260,15 +309,14 @@ export class MedicalRecord implements OnInit {
             : [row, ...this.consultations];
           this.refreshDocuments();
         } else {
-          // General patient document fallback
           if (this.selectedFile) {
              this.documents.unshift(this.selectedFile.name);
           }
         }
         
-        // Reset the file input
         this.selectedFile = null;
         this.docSuccess = 'Fichier uploadé avec succès.';
+        this.cdr.detectChanges(); 
       },
       error: (err: any) => {
         if (err.error && typeof err.error === 'string') {
@@ -278,6 +326,7 @@ export class MedicalRecord implements OnInit {
         } else {
           this.docError = 'Upload du document impossible. Vérifiez la taille du fichier.';
         }
+        this.cdr.detectChanges();
       },
     });
   }
@@ -340,6 +389,7 @@ export class MedicalRecord implements OnInit {
             this.consultations = [];
             this.documents = [];
             this.formError = 'Aucun patient n est encore rattache a ce medecin dans le planning.';
+            this.cdr.detectChanges();
             return;
           }
 
@@ -347,6 +397,7 @@ export class MedicalRecord implements OnInit {
         },
         error: () => {
           this.formError = 'Impossible de charger les patients du planning medecin.';
+          this.cdr.detectChanges();
         },
       });
   }
@@ -371,11 +422,13 @@ export class MedicalRecord implements OnInit {
             this.formSuccess = '';
             this.formError = 'Aucune consultation enregistree pour ce patient.';
           }
+          this.cdr.detectChanges(); 
         },
         error: () => {
           this.consultations = [];
           this.documents = [];
           this.formError = 'Chargement du dossier patient impossible.';
+          this.cdr.detectChanges();
         },
       });
   }

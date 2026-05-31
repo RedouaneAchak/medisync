@@ -1,7 +1,7 @@
 package com.medisync.controller;
 
 import com.medisync.model.nosql.Consultation;
-import com.medisync.service.ConsultationService; // <-- IMPORT ADDED
+import com.medisync.service.ConsultationService;
 import com.medisync.model.sql.Appointment;
 import com.medisync.model.sql.Patient;
 import com.medisync.service.PatientService;
@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.access.prepost.PreAuthorize; // <-- IMPORT ADDED POUR LA SÉCURITÉ
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,7 +33,16 @@ import java.util.Map;
 public class PatientController {
 
     private final PatientService patientService;
-    private final ConsultationService consultationService; // <-- INJECTION ADDED
+    private final ConsultationService consultationService;
+
+    // ── Recherche de patients (Ajout pour les Médecins/Secrétaires) ───────────
+
+    @PreAuthorize("hasAnyAuthority('DOCTOR', 'SECRETARY', 'ADMIN')")
+    @GetMapping("/search")
+    public ResponseEntity<List<Patient>> searchPatients(@RequestParam("q") String query) {
+        // Appelle la méthode du service que vous avez créée pour interroger la base de données
+        return ResponseEntity.ok(patientService.searchPatientsByName(query));
+    }
 
     // ── Profil ────────────────────────────────────────────────────────────────
 

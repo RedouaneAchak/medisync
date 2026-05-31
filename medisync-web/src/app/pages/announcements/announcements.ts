@@ -8,7 +8,7 @@ export class Announcements {
   announcements = [
     {
       category: 'Information patients',
-      date: '27 mai 2026',
+      date: '7 juin 2026',
       title: 'Nouvelle organisation des visites',
       text: 'Les visites en hospitalisation generale sont ouvertes de 12:00 a 14:00 et de 17:00 a 19:00.',
       tone: 'blue',
@@ -22,7 +22,7 @@ export class Announcements {
     },
     {
       category: 'Travaux',
-      date: '3 juin 2026',
+      date: '30 mars 2026',
       title: 'Acces parking temporairement modifie',
       text: 'L entree nord sera reservee aux ambulances. Les visiteurs sont invites a utiliser l entree principale.',
       tone: 'yellow',

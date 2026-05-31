@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
@@ -27,7 +27,7 @@ interface AppointmentRow {
   imports: [FormsModule],
   templateUrl: './appointments.html',
 })
-export class Appointments {
+export class Appointments implements OnInit { // 1. Implémentation de OnInit
   appointments: AppointmentRow[] = [];
   rooms: BackendRoom[] = [];
   activeTab = 'A venir';
@@ -48,11 +48,16 @@ export class Appointments {
   constructor(
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
-  ) {
+    private readonly cdr: ChangeDetectorRef // 2. Injection de ChangeDetectorRef
+  ) {}
+
+  // 3. Déplacement de l'initialisation dans ngOnInit
+  ngOnInit(): void {
     this.loadAppointments();
     this.api.getRooms().subscribe({
       next: (rooms) => {
         this.rooms = rooms;
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
     });
   }
@@ -65,11 +70,13 @@ export class Appointments {
       durationMinutes: appointment.durationMinutes,
       roomId: appointment.roomId || this.rooms[0]?.id || 0,
     };
+    this.cdr.detectChanges(); // Sécuriser l'ouverture du formulaire
   }
 
   saveEdit(): void {
     if (!this.editingId || !this.editForm.roomId) {
       this.setMessage('Choisissez une salle avant de modifier le rendez-vous.', 'error');
+      this.cdr.detectChanges();
       return;
     }
 
@@ -81,7 +88,10 @@ export class Appointments {
         durationMinutes: this.editForm.durationMinutes,
         roomId: this.editForm.roomId,
       })
-      .pipe(finalize(() => (this.saving = false)))
+      .pipe(finalize(() => {
+        this.saving = false;
+        this.cdr.detectChanges();
+      }))
       .subscribe({
         next: (updated) => {
           this.appointments = this.appointments.map((appointment) =>
@@ -89,9 +99,11 @@ export class Appointments {
           );
           this.editingId = null;
           this.setMessage('Rendez-vous modifie avec succes.', 'success');
+          this.cdr.detectChanges(); // Forçage du rafraîchissement
         },
         error: () => {
           this.setMessage('Modification impossible: creneau ou salle indisponible.', 'error');
+          this.cdr.detectChanges(); // Forçage du rafraîchissement
         },
       });
   }
@@ -99,17 +111,22 @@ export class Appointments {
   cancel(id: number): void {
     this.saving = true;
     this.message = '';
-    this.api.cancelAppointment(id).subscribe({
+    this.api.cancelAppointment(id)
+      .pipe(finalize(() => {
+        this.saving = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
       next: (updated) => {
         this.appointments = this.appointments.map((appointment) =>
           appointment.id === id ? this.toAppointmentRow(updated) : appointment,
         );
-        this.saving = false;
         this.setMessage('Rendez-vous annule avec succes.', 'success');
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
       error: () => {
-        this.saving = false;
         this.setMessage('Annulation impossible.', 'error');
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
     });
   }
@@ -117,17 +134,22 @@ export class Appointments {
   confirm(id: number): void {
     this.saving = true;
     this.message = '';
-    this.api.confirmAppointment(id).subscribe({
+    this.api.confirmAppointment(id)
+      .pipe(finalize(() => {
+        this.saving = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
       next: (updated) => {
         this.appointments = this.appointments.map((appointment) =>
           appointment.id === id ? this.toAppointmentRow(updated) : appointment,
         );
-        this.saving = false;
         this.setMessage('Rendez-vous confirme avec succes.', 'success');
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
       error: () => {
-        this.saving = false;
         this.setMessage('Confirmation impossible.', 'error');
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
     });
   }
@@ -180,16 +202,21 @@ export class Appointments {
           ? this.api.getDoctorAppointments(user.userId, from, to)
           : this.api.getAppointments();
 
-    request.pipe(finalize(() => (this.loading = false))).subscribe({
+    request.pipe(finalize(() => {
+      this.loading = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: (items) => {
         this.appointments = items.map((appointment) => this.toAppointmentRow(appointment));
         if (!items.length) {
           this.setMessage('Aucun rendez-vous trouve.', 'info');
         }
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
       error: () => {
         this.appointments = [];
         this.error = 'Connectez-vous pour charger les rendez-vous depuis le backend.';
+        this.cdr.detectChanges(); // Forçage du rafraîchissement
       },
     });
   }
@@ -229,6 +256,7 @@ export class Appointments {
   private setMessage(message: string, type: 'success' | 'error' | 'info'): void {
     this.message = message;
     this.messageType = type;
+    this.cdr.detectChanges(); // Sécurise l'affichage des messages flash
   }
 
   private isPast(appointment: AppointmentRow): boolean {

@@ -9,7 +9,7 @@
       <a routerLink="/announcements" routerLinkActive="active">Annonces</a>
       @if (user) {
         <a routerLink="/doctors" routerLinkActive="active">Medecins</a>
-        @if (canSee(['PATIENT', 'SECRETARY', 'ADMIN'])) {
+        @if (canSee(['PATIENT'])) {
           <a routerLink="/booking" routerLinkActive="active">Rendez-vous</a>
         }
         @if (canSee(['PATIENT', 'DOCTOR', 'ADMIN'])) {
@@ -42,14 +42,18 @@
   @if (!isPublicPage) {
     <aside class="sidebar">
       <span class="sidebar-label">Espace {{ user?.role?.toLowerCase() }}</span>
+      @if (canSee(['PATIENT', 'DOCTOR','SECRETARY'])) {
       <a routerLink="/appointments" routerLinkActive="active">Planning</a>
+    }
       @if (canSee(['SECRETARY', 'ADMIN'])) {
         <a routerLink="/patients" routerLinkActive="active">Patients</a>
       }
       @if (canSee(['SECRETARY', 'ADMIN'])) {
         <a routerLink="/rooms" routerLinkActive="active">Salles</a>
       }
+      @if (canSee(['PATIENT', 'DOCTOR'])) {
       <a routerLink="/profile" routerLinkActive="active">Profil</a>
+      }
       @if (canSee(['ADMIN'])) {
         <a routerLink="/admin" routerLinkActive="active">Admin</a>
       }

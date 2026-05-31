@@ -178,7 +178,9 @@ export class MedisyncApiService {
   getPatientInvoices(patientId: number) {
     return this.http.get<BackendInvoice[]>(`/api/invoices/patient/${patientId}`);
   }
-
+  getAuditLogs() {
+    return this.http.get<any>('/api/admin/audit-logs');
+  }
   markInvoicePaid(id: number) {
     return this.http.patch<BackendInvoice>(`/api/secretary/invoices/${id}/pay`, {});
   }
@@ -228,11 +230,17 @@ export class MedisyncApiService {
   getConsultationsForDoctor(doctorId: number) {
     return this.http.get<BackendConsultation[]>(`/api/consultations/doctor/${doctorId}`);
   }
-
+  getConsultations() {
+    return this.http.get<BackendConsultation[]>('/api/consultations');
+  }
   createConsultation(body: { patientId: number; doctorId: number; observation: string; prescriptions: string[] }) {
     return this.http.post<BackendConsultation>('/api/consultations', body);
   }
-
+  searchPatientsByName(query: string) {
+    const params = new HttpParams().set('q', query);
+    // Modifiez cette route si votre backend utilise une URL différente pour la recherche
+    return this.http.get<BackendPatient[]>('/api/patient/search', { params });
+  }
   updateConsultation(id: string, body: { observation: string; prescriptions: string[] }) {
     return this.http.put<BackendConsultation>(`/api/consultations/${id}`, body);
   }
