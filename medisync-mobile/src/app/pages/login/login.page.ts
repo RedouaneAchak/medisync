@@ -14,6 +14,9 @@ import { AuthService } from '../../services/auth.service';
   imports: [CommonModule, FormsModule, IonContent, IonButton, IonInput],
 })
 export class LoginPage {
+  private static readonly EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  private static readonly PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,72}$/;
+
   fullName = '';
   email = '';
   password = '';
@@ -37,36 +40,35 @@ export class LoginPage {
   login(): void {
     this.error = '';
 
-    if (!this.email || !this.password || (this.mode === 'signup' && !this.fullName.trim())) {
-      this.error = 'Veuillez remplir les champs requis.';
+    if (!this.validateForm()) {
       return;
     }
 
     this.loading = true;
     const nameParts = this.fullName.trim().split(' ').filter(Boolean);
-    const firstName = nameParts[0] ?? 'Patient';
+    const firstName = nameParts[0] ?? '';
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'MediSync';
+    const email = this.email.trim().toLowerCase();
 
     const request =
       this.mode === 'signin'
-        ? this.authService.login(this.email, this.password)
-        : this.authService.register(firstName, lastName, this.email, this.password, this.phone);
+        ? this.authService.login(email, this.password)
+        : this.authService.register(firstName, lastName, email, this.password, this.phone.trim());
 
     request.subscribe({
       next: () => {
         this.loading = false;
         void this.router.navigateByUrl(this.route.snapshot.queryParamMap.get('returnUrl') ?? '/home');
       },
-      error: (err: { status?: number }) => {
+      error: (err: AuthError) => {
         this.loading = false;
-        if (err.status === 400 || err.status === 401 || err.status === 403) {
-          this.error =
-            this.mode === 'signin'
+        this.error =
+          this.extractErrorMessage(err) ??
+          (err.status === 400 || err.status === 401 || err.status === 403
+            ? this.mode === 'signin'
               ? 'Email ou mot de passe incorrect.'
-              : 'Inscription impossible. Vérifiez vos informations.';
-        } else {
-          this.error = 'Connexion au backend impossible. Vérifiez que le serveur est démarré.';
-        }
+              : 'Inscription impossible. Vérifiez vos informations.'
+            : 'Connexion au backend impossible. Vérifiez que le serveur est démarré.');
       },
     });
   }
@@ -83,4 +85,46 @@ export class LoginPage {
       this.phone = '';
     }
   }
+
+  private validateForm(): boolean {
+    const email = this.email.trim();
+
+    if (!email || !this.password || (this.mode === 'signup' && !this.fullName.trim())) {
+      this.error = "Le nom, l'email et le mot de passe sont obligatoires.";
+      return false;
+    }
+
+    if (!LoginPage.EMAIL_PATTERN.test(email)) {
+      this.error = 'Veuillez saisir une adresse email valide.';
+      return false;
+    }
+
+    if (this.mode === 'signup' && !LoginPage.PASSWORD_PATTERN.test(this.password)) {
+      this.error =
+        'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.';
+      return false;
+    }
+
+    return true;
+  }
+
+  private extractErrorMessage(err: AuthError): string | null {
+    if (typeof err.error === 'string') {
+      return err.error;
+    }
+
+    if (err.error?.errors) {
+      return Object.values(err.error.errors)[0] ?? err.error.message ?? null;
+    }
+
+    return err.error?.message ?? null;
+  }
+}
+
+interface AuthError {
+  status?: number;
+  error?: {
+    message?: string;
+    errors?: Record<string, string>;
+  } | string;
 }

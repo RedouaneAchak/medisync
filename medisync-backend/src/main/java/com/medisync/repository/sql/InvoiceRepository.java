@@ -7,4 +7,5 @@ import java.util.List;
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     // The Secretary dashboard can instantly pull up all unpaid bills
     List<Invoice> findByIsPaidFalse();
+    List<Invoice> findByAppointmentIdIn(List<Long> appointmentIds);
 }

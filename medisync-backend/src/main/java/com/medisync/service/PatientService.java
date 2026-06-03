@@ -40,17 +40,32 @@ public class PatientService {
                 .orElseThrow(() -> new RuntimeException("Patient introuvable : " + patientId));
     }
 
+    public Patient getProfileForUser(String email) {
+        return patientRepository.findByUserEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil patient introuvable."));
+    }
+
+    @Transactional
+    public Patient updateProfileForUser(String email, Patient updatedData) {
+        Patient existing = getProfileForUser(email);
+        return applyProfileUpdate(existing, updatedData);
+    }
+
     @Transactional
     public Patient updateProfile(Long id, Patient updatedData) {
         // 1. Fetch the existing patient (this pulls the secure password into memory)
         Patient existing = patientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
+        return applyProfileUpdate(existing, updatedData);
+    }
+
+    private Patient applyProfileUpdate(Patient existing, Patient updatedData) {
         String newSsn = updatedData.getSocialSecurityNumber();
         if (newSsn != null && !newSsn.isBlank()) {
             Optional<Patient> duplicateCheck = patientRepository.findBySocialSecurityNumber(newSsn);
 
             // If the SSN exists AND it belongs to a different user, throw a clean error!
-            if (duplicateCheck.isPresent() && !duplicateCheck.get().getId().equals(id)) {
+            if (duplicateCheck.isPresent() && !duplicateCheck.get().getId().equals(existing.getId())) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This social number already exists");
             }
         }

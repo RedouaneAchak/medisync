@@ -9,7 +9,7 @@ export class GoogleAuthService {
   private initialized = false;
 
   get isConfigured(): boolean {
-    return this.runtimeConfig.googleClientId.trim() !== '' && this.runtimeConfig.googleClientId !== 'disabled';
+    return this.clientId !== '' && this.clientId !== 'disabled' && this.clientId.endsWith('.apps.googleusercontent.com');
   }
 
   async renderButton(
@@ -24,7 +24,7 @@ export class GoogleAuthService {
     const google = await this.waitForGoogle();
     if (!this.initialized) {
       const config: GoogleIdConfiguration = {
-        client_id: this.runtimeConfig.googleClientId,
+        client_id: this.clientId,
         callback,
         cancel_on_tap_outside: true,
         ux_mode: 'popup',
@@ -74,5 +74,9 @@ export class GoogleAuthService {
 
       tick();
     });
+  }
+
+  private get clientId(): string {
+    return this.runtimeConfig.googleClientId.trim();
   }
 }

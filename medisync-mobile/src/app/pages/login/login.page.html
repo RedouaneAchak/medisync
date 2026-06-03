@@ -12,6 +12,7 @@
         type="text"
         placeholder="Nom et prénom"
         [(ngModel)]="fullName"
+        required
         fill="outline"
         class="custom-input">
       </ion-input>
@@ -23,6 +24,7 @@
         type="email"
         placeholder="votre@email.com"
         [(ngModel)]="email"
+        required
         fill="outline"
         class="custom-input">
       </ion-input>
@@ -34,6 +36,8 @@
         type="password"
         placeholder="••••••••"
         [(ngModel)]="password"
+        required
+        minlength="8"
         fill="outline"
         class="custom-input">
       </ion-input>

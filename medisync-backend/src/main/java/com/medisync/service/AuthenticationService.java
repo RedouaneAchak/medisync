@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
 import java.util.Collections;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -54,13 +55,14 @@ public class AuthenticationService {
     // ── Login classique ───────────────────────────────────────────────────────
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
+        String email = normalizeEmail(request.getEmail());
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        email,
                         request.getPassword()
                 )
         );
-        User user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+        User user = userRepository.findByEmail(email).orElseThrow();
         return buildAuthResponse(user);
     }
 
@@ -72,14 +74,18 @@ public class AuthenticationService {
      */
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email déjà utilisé : " + request.getEmail());
+        String email = normalizeEmail(request.getEmail());
+        String firstName = request.getFirstname().trim();
+        String lastName = request.getLastname() == null ? "" : request.getLastname().trim();
+
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email déjà utilisé : " + email);
         }
 
         User user = User.builder()
-                .firstname(request.getFirstname())
-                .lastname(request.getLastname())
-                .email(request.getEmail())
+                .firstname(firstName)
+                .lastname(lastName)
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.PATIENT)
                 .build();
@@ -88,8 +94,8 @@ public class AuthenticationService {
         // Créer automatiquement le profil Patient associé
         Patient patient = new Patient();
         patient.setUser(user);
-        patient.setFirstName(request.getFirstname());
-        patient.setLastName(request.getLastname());
+        patient.setFirstName(firstName);
+        patient.setLastName(lastName);
         patientRepository.save(patient);
 
         return buildAuthResponse(user);
@@ -115,13 +121,22 @@ public class AuthenticationService {
             }
 
             GoogleIdToken.Payload payload = idToken.getPayload();
-            String email = payload.getEmail();
-            String name  = (String) payload.get("name");
+            if (!Boolean.TRUE.equals(payload.getEmailVerified())) {
+                throw new RuntimeException("L'email Google n'est pas vérifié.");
+            }
+
+            String email = normalizeEmail(payload.getEmail());
+            String name = (String) payload.get("name");
+            String givenName = (String) payload.get("given_name");
+            String familyName = (String) payload.get("family_name");
 
             User user = userRepository.findByEmail(email).orElseGet(() -> {
-                String firstName = name != null ? name.split(" ")[0] : "";
-                String lastName  = (name != null && name.contains(" "))
-                        ? name.substring(name.indexOf(" ") + 1) : "";
+                String firstName = givenName != null && !givenName.isBlank()
+                        ? givenName
+                        : (name != null ? name.split(" ")[0] : "Patient");
+                String lastName  = familyName != null && !familyName.isBlank()
+                        ? familyName
+                        : (name != null && name.contains(" ") ? name.substring(name.indexOf(" ") + 1) : "Google");
 
                 User newUser = User.builder()
                         .firstname(firstName)
@@ -142,6 +157,14 @@ public class AuthenticationService {
                 return newUser;
             });
 
+            if (user.getRole() == Role.PATIENT && patientRepository.findById(user.getId()).isEmpty()) {
+                Patient p = new Patient();
+                p.setUser(user);
+                p.setFirstName(user.getFirstname());
+                p.setLastName(user.getLastname());
+                patientRepository.save(p);
+            }
+
             return buildAuthResponse(user);
 
         } catch (Exception e) {
@@ -158,5 +181,12 @@ public class AuthenticationService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

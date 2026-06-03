@@ -13,9 +13,9 @@
       </p>
     </div>
     <div class="auth-switch">
-      <button [class.active]="mode === 'signin'" (click)="mode = 'signin'">Sign
+      <button [class.active]="mode === 'signin'" (click)="setMode('signin')">Sign
         in</button>
-      <button [class.active]="mode === 'signup'" (click)="mode = 'signup'">Sign
+      <button [class.active]="mode === 'signup'" (click)="setMode('signup')">Sign
         up</button>
     </div>
   </div>
@@ -26,16 +26,22 @@
     @if (mode === 'signup') {
     <label>
       Nom complet
-      <input [(ngModel)]="fullName" name="fullName" placeholder="Votre nom" />
+      <input [(ngModel)]="fullName" name="fullName" placeholder="Votre nom" required />
     </label>
     }
     <label>
       Email
-      <input [(ngModel)]="email" name="email" type="email" />
+      <input [(ngModel)]="email" name="email" type="email" autocomplete="email" required />
     </label>
     <label>
       Mot de passe
-      <input [(ngModel)]="password" name="password" type="password" />
+      <input
+        [(ngModel)]="password"
+        name="password"
+        type="password"
+        [attr.autocomplete]="mode === 'signin' ? 'current-password' : 'new-password'"
+        minlength="8"
+        required />
     </label>
     @if (mode === 'signup') {
     <label>
@@ -59,10 +65,12 @@
         <p class="muted">Connexion Google en cours...</p>
       }
     } @else {
-      <p class="muted">Google Sign-In n'est pas encore configuré pour cet environnement.</p>
+      <button class="btn secondary full" type="button" (click)="showGoogleConfigHelp()">
+        Continuer avec Google
+      </button>
     }
     <button type="button" class="muted-link as-button"
-      (click)="mode = mode === 'signin' ? 'signup' : 'signin'">
+      (click)="setMode(mode === 'signin' ? 'signup' : 'signin')">
       {{ mode === 'signin' ? 'Creer un compte patient' : 'J ai deja un compte'
       }}
     </button>

@@ -60,8 +60,47 @@ public class AdminService {
 
     @Transactional
     public void deleteUser(Long userId) {
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable : " + userId));
+
+        if (user.getRole() == Role.PATIENT) {
+            deletePatientAccount(user);
+        } else {
+            userRepository.delete(user);
+        }
+
         logAudit(null, "DELETE_USER", "User#" + userId);
+    }
+
+    private void deletePatientAccount(User user) {
+        Optional<Patient> patientOptional = patientRepository.findById(user.getId());
+        if (patientOptional.isEmpty()) {
+            userRepository.delete(user);
+            return;
+        }
+
+        Patient patient = patientOptional.get();
+        Long patientId = patient.getId();
+
+        patientRepository.findByGuardianId(patientId).forEach(dependent -> {
+            dependent.setGuardian(null);
+            patientRepository.save(dependent);
+        });
+
+        List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
+        List<Long> appointmentIds = appointments.stream()
+                .map(Appointment::getId)
+                .filter(Objects::nonNull)
+                .toList();
+
+        if (!appointmentIds.isEmpty()) {
+            invoiceRepository.deleteAll(invoiceRepository.findByAppointmentIdIn(appointmentIds));
+        }
+
+        appointmentRepository.deleteAll(appointments);
+        consultationRepository.deleteByPatientId(patientId);
+        patientRepository.delete(patient);
+        userRepository.delete(user);
     }
 
     // ── Gestion des médecins ──────────────────────────────────────────────────

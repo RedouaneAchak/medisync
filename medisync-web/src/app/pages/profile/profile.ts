@@ -102,7 +102,7 @@ export class Profile {
     }
 
     this.api
-      .getPatientProfile(this.currentUserId)
+      .getMyPatientProfile()
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (profile) => this.applyPatientProfile(profile),
@@ -116,7 +116,7 @@ export class Profile {
     this.saving = true;
 
     this.api
-      .updatePatientProfile(this.currentUserId, {
+      .updateMyPatientProfile({
         firstName: this.firstName,
         lastName: this.lastName,
         phoneNumber: this.phone,

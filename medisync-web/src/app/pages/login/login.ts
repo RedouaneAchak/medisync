@@ -11,14 +11,23 @@ import { GoogleCredentialResponse } from '../../core/google-identity.types';
   imports: [FormsModule],
   templateUrl: './login.html',
 })
-export class Login {
-  @ViewChild('googleButtonHost') googleButtonHost?: ElementRef<HTMLDivElement>;
+export class Login implements AfterViewInit {
+  private static readonly EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  private static readonly PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,72}$/;
+
+  private googleButtonHost?: HTMLDivElement;
+
+  @ViewChild('googleButtonHost')
+  set googleButtonHostRef(ref: ElementRef<HTMLDivElement> | undefined) {
+    this.googleButtonHost = ref?.nativeElement;
+    this.renderGoogleButton();
+  }
 
   email = '';
   password = '';
   fullName = '';
   phone = '';
-  
+
   mode: 'signin' | 'signup' = 'signin';
   error = '';
   loading = false;
@@ -30,38 +39,32 @@ export class Login {
     private readonly router: Router,
     private readonly route: ActivatedRoute,
     private readonly googleAuthService: GoogleAuthService,
-    private cdr: ChangeDetectorRef
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngAfterViewInit(): void {
     this.googleEnabled = this.googleAuthService.isConfigured;
-    if (!this.googleEnabled || !this.googleButtonHost) {
-      this.cdr.detectChanges();
-      return;
-    }
-
-    void this.googleAuthService
-      .renderButton(this.googleButtonHost.nativeElement, (response) => this.handleGoogleCredential(response))
-      .then(() => this.googleAuthService.prompt())
-      .catch((error: unknown) => {
-        console.error('Google button render failed:', error);
-        this.error = 'Connexion Google indisponible pour le moment.';
-        this.cdr.detectChanges();
-      });
+    this.cdr.detectChanges();
+    this.renderGoogleButton();
   }
 
   submit(): void {
     this.error = '';
-    this.loading = true;
 
-    const firstName = this.fullName.trim().split(' ')[0] || 'Patient';
+    if (!this.validateForm()) {
+      return;
+    }
+
+    this.loading = true;
     const parts = this.fullName.trim().split(' ').filter(Boolean);
+    const firstName = parts[0] || '';
     const lastName = parts.length > 1 ? parts.slice(1).join(' ') : 'MediSync';
+    const email = this.email.trim().toLowerCase();
 
     const request =
       this.mode === 'signin'
-        ? this.authService.login(this.email, this.password)
-        : this.authService.register(firstName, lastName, this.email, this.password, this.phone);
+        ? this.authService.login(email, this.password)
+        : this.authService.register(firstName, lastName, email, this.password, this.phone.trim());
 
     request.subscribe({
       next: () => {
@@ -74,16 +77,29 @@ export class Login {
       error: (err) => {
         this.loading = false;
         console.error('Login Failed:', err);
-
-        if (err.status === 401 || err.status === 403 || err.status === 400) {
-            this.error = 'Email ou mot de passe incorrect. Veuillez réessayer.';
-        } else {
-            this.error = 'Erreur serveur. Vérifiez que le backend est démarré.';
-        }
-        
+        this.error =
+          this.extractErrorMessage(err) ??
+          (this.mode === 'signin'
+            ? 'Email ou mot de passe incorrect. Veuillez réessayer.'
+            : 'Inscription impossible. Vérifiez vos informations.');
         this.cdr.detectChanges();
       },
     });
+  }
+
+  setMode(mode: 'signin' | 'signup'): void {
+    if (this.mode === mode) {
+      return;
+    }
+
+    this.mode = mode;
+    this.error = '';
+    this.renderGoogleButton();
+  }
+
+  showGoogleConfigHelp(): void {
+    this.error =
+      'Google Sign-In doit être configuré avec un client ID Google dans public/runtime-config.js et GOOGLE_CLIENT_ID côté backend.';
   }
 
   private handleGoogleCredential(response: GoogleCredentialResponse): void {
@@ -107,11 +123,61 @@ export class Login {
       error: (err) => {
         this.googleLoading = false;
         console.error('Google login failed:', err);
-        this.error =
-          err.error?.message ??
-          (typeof err.error === 'string' ? err.error : 'Connexion Google impossible. Vérifiez la configuration.');
+        this.error = this.extractErrorMessage(err) ?? 'Connexion Google impossible. Vérifiez la configuration.';
         this.cdr.detectChanges();
       },
     });
+  }
+
+  private validateForm(): boolean {
+    const email = this.email.trim();
+
+    if (!email || !this.password || (this.mode === 'signup' && !this.fullName.trim())) {
+      this.error = "Le nom, l'email et le mot de passe sont obligatoires.";
+      return false;
+    }
+
+    if (!Login.EMAIL_PATTERN.test(email)) {
+      this.error = 'Veuillez saisir une adresse email valide.';
+      return false;
+    }
+
+    if (this.mode === 'signup' && !Login.PASSWORD_PATTERN.test(this.password)) {
+      this.error =
+        'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.';
+      return false;
+    }
+
+    return true;
+  }
+
+  private renderGoogleButton(): void {
+    if (!this.googleEnabled || !this.googleButtonHost) {
+      return;
+    }
+
+    void this.googleAuthService
+      .renderButton(this.googleButtonHost, (response) => this.handleGoogleCredential(response), {
+        text: this.mode === 'signup' ? 'signup_with' : 'signin_with',
+      })
+      .then(() => this.googleAuthService.prompt())
+      .catch((error: unknown) => {
+        console.error('Google button render failed:', error);
+        this.error = 'Connexion Google indisponible pour le moment.';
+        this.cdr.detectChanges();
+      });
+  }
+
+  private extractErrorMessage(err: unknown): string | null {
+    const error = err as { error?: { message?: string; errors?: Record<string, string> } | string };
+    if (typeof error.error === 'string') {
+      return error.error;
+    }
+
+    if (error.error?.errors) {
+      return Object.values(error.error.errors)[0] ?? error.error.message ?? null;
+    }
+
+    return error.error?.message ?? null;
   }
 }

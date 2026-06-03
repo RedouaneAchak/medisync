@@ -46,6 +46,18 @@ public class PatientController {
 
     // ── Profil ────────────────────────────────────────────────────────────────
 
+    @GetMapping("/me")
+    public ResponseEntity<Patient> getMyProfile(@AuthenticationPrincipal UserDetails currentUser) {
+        return ResponseEntity.ok(patientService.getProfileForUser(currentUser.getUsername()));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<Patient> updateMyProfile(
+            @AuthenticationPrincipal UserDetails currentUser,
+            @RequestBody Patient updated) {
+        return ResponseEntity.ok(patientService.updateProfileForUser(currentUser.getUsername(), updated));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Patient> getProfile(@PathVariable Long id) {
         return ResponseEntity.ok(patientService.getProfile(id));

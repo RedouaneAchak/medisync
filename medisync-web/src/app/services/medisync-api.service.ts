@@ -79,8 +79,16 @@ export class MedisyncApiService {
     return this.http.put<BackendPatient>(`/api/patient/${patientId}`, body);
   }
 
+  updateMyPatientProfile(body: Partial<BackendPatient>) {
+    return this.http.put<BackendPatient>('/api/patient/me', body);
+  }
+
   getPatientProfile(patientId: number) {
     return this.http.get<BackendPatient>(`/api/patient/${patientId}`);
+  }
+
+  getMyPatientProfile() {
+    return this.http.get<BackendPatient>('/api/patient/me');
   }
 
   getDoctorProfile(doctorId: number) {
