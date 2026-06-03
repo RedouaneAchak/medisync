@@ -17,6 +17,9 @@ interface PatientRow {
   templateUrl: './patients.html',
 })
 export class Patients implements OnInit {
+  private static readonly EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  private static readonly PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,72}$/;
+
   patients: PatientRow[] = [];
   query = '';
   error = '';
@@ -31,6 +34,7 @@ export class Patients implements OnInit {
     ssn: '',
     category: 'ADULT',
     companyName: '',
+    password: '',
   };
 
   constructor(
@@ -51,10 +55,26 @@ export class Patients implements OnInit {
 
   createPatient(): void {
     this.message = '';
-    this.api.createPatient(this.newPatient).subscribe({
+    const email = this.newPatient.email.trim().toLowerCase();
+
+    if (!Patients.EMAIL_PATTERN.test(email)) {
+      this.message = 'Veuillez saisir une adresse email valide.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!Patients.PASSWORD_PATTERN.test(this.newPatient.password)) {
+      this.message =
+        'Mot de passe requis: 10 caracteres minimum avec majuscule, minuscule, chiffre et caractere special.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const payload = { ...this.newPatient, email };
+    this.api.createPatient(payload).subscribe({
       next: (patient) => {
         this.patients = [this.toPatientRow(patient), ...this.patients];
-        this.message = 'Compte patient cree avec un mot de passe temporaire cote backend.';
+        this.message = 'Compte patient cree avec le mot de passe saisi.';
         this.showCreateForm = false;
         this.newPatient = {
           firstname: '',
@@ -64,6 +84,7 @@ export class Patients implements OnInit {
           ssn: '',
           category: 'ADULT',
           companyName: '',
+          password: '',
         };
         this.cdr.detectChanges(); // 3. Forçage du rafraîchissement
       },

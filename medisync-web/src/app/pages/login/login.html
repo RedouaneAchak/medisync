@@ -21,8 +21,17 @@
   </div>
 
   <form class="auth-card" (ngSubmit)="submit()">
-    <span class="eyebrow">{{ mode === 'signin' ? 'Connexion securisee' : 'Inscription patient' }}</span>
-    <h2>{{ mode === 'signin' ? 'Sign in' : 'Sign up' }}</h2>
+    <span class="eyebrow">{{ twoFactorPending ? 'Double authentification' : mode === 'signin' ? 'Connexion securisee' : 'Inscription patient' }}</span>
+    <h2>{{ twoFactorPending ? 'Verification admin' : mode === 'signin' ? 'Sign in' : 'Sign up' }}</h2>
+    @if (twoFactorPending) {
+    <label>
+      Code admin
+      <input [(ngModel)]="twoFactorCode" name="twoFactorCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required />
+    </label>
+    @if (twoFactorDevCode) {
+    <p class="muted">Code de test local: {{ twoFactorDevCode }}</p>
+    }
+    } @else {
     @if (mode === 'signup') {
     <label>
       Nom complet
@@ -49,6 +58,7 @@
       <input [(ngModel)]="phone" name="phone" placeholder="+212 ..." />
     </label>
     }
+    }
     @if (error) {
     <p
       style="color: #e74c3c; font-weight: 500; font-size: 0.9rem; margin-top: 10px;">
@@ -56,8 +66,9 @@
     </p>
     }
     <button class="btn primary full" type="submit" [disabled]="loading">
-      {{ loading ? 'Connexion...' : mode === 'signin' ? 'Sign in' : 'Sign up' }}
+      {{ loading ? 'Connexion...' : twoFactorPending ? 'Verifier' : mode === 'signin' ? 'Sign in' : 'Sign up' }}
     </button>
+    @if (!twoFactorPending) {
     <div class="auth-divider"><span>ou via Google</span></div>
     @if (googleEnabled) {
       <div #googleButtonHost class="google-button-host"></div>
@@ -74,5 +85,6 @@
       {{ mode === 'signin' ? 'Creer un compte patient' : 'J ai deja un compte'
       }}
     </button>
+    }
   </form>
 </section>

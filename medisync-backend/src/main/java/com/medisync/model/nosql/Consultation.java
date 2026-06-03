@@ -14,6 +14,7 @@ public class Consultation {
     private String id;
     private Long patientId; 
     private Long doctorId;
+    private Long appointmentId;
     private String observation;
     private List<String> prescriptions;
     private List<Map<String, Object>> files;

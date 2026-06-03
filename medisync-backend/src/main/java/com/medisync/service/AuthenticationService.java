@@ -23,7 +23,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.Locale;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthenticationService {
@@ -33,6 +37,8 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
+    private final SecureRandom secureRandom = new SecureRandom();
+    private final Map<String, TwoFactorChallenge> twoFactorChallenges = new ConcurrentHashMap<>();
 
     @Value("${google.client-id}")
     private String googleClientId;
@@ -60,6 +66,14 @@ public class AuthenticationService {
                 )
         );
         User user = userRepository.findByEmail(email).orElseThrow();
+        if (user.getRole() == Role.ADMIN) {
+            return buildTwoFactorChallenge(user);
+        }
+        return buildAuthResponse(user);
+    }
+
+    public AuthenticationResponse currentUser(String email) {
+        User user = userRepository.findByEmail(normalizeEmail(email)).orElseThrow();
         return buildAuthResponse(user);
     }
 
@@ -164,6 +178,26 @@ public class AuthenticationService {
             patientRepository.save(patient);
         }
 
+        if (user.getRole() == Role.ADMIN) {
+            return buildTwoFactorChallenge(user);
+        }
+
+        return buildAuthResponse(user);
+    }
+
+    public AuthenticationResponse verifyAdminTwoFactor(String challengeId, String code) {
+        TwoFactorChallenge challenge = twoFactorChallenges.get(challengeId);
+        if (challenge == null || challenge.expiresAt().isBefore(LocalDateTime.now())) {
+            twoFactorChallenges.remove(challengeId);
+            throw new RuntimeException("Code de double authentification expire.");
+        }
+
+        if (code == null || !challenge.code().equals(code.trim())) {
+            throw new RuntimeException("Code de double authentification invalide.");
+        }
+
+        twoFactorChallenges.remove(challengeId);
+        User user = userRepository.findById(challenge.userId()).orElseThrow();
         return buildAuthResponse(user);
     }
 
@@ -175,6 +209,24 @@ public class AuthenticationService {
                 .lastname(user.getLastname())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .twoFactorRequired(false)
+                .build();
+    }
+
+    private AuthenticationResponse buildTwoFactorChallenge(User user) {
+        String challengeId = UUID.randomUUID().toString();
+        String code = String.format("%06d", secureRandom.nextInt(1_000_000));
+        twoFactorChallenges.put(challengeId, new TwoFactorChallenge(user.getId(), code, LocalDateTime.now().plusMinutes(10)));
+
+        return AuthenticationResponse.builder()
+                .userId(user.getId())
+                .firstname(user.getFirstname())
+                .lastname(user.getLastname())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .twoFactorRequired(true)
+                .twoFactorChallengeId(challengeId)
+                .twoFactorCode(code)
                 .build();
     }
 
@@ -183,5 +235,8 @@ public class AuthenticationService {
             return "";
         }
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private record TwoFactorChallenge(Long userId, String code, LocalDateTime expiresAt) {
     }
 }

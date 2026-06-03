@@ -37,7 +37,10 @@ public class InvoiceService {
         invoice.setIsPaid(false);
         invoice.setPaymentMethod(paymentMethod);
 
-        return invoiceRepository.save(invoice);
+        Invoice saved = invoiceRepository.save(invoice);
+        appt.setInvoice(saved);
+        appointmentRepository.save(appt);
+        return saved;
     }
 
     // ── Marquer comme payée ───────────────────────────────────────────────────

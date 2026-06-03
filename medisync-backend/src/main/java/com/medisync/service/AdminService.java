@@ -203,7 +203,7 @@ public class AdminService {
     // ── Journal d'audit ───────────────────────────────────────────────────────
 
     public List<AuditLog> getAuditLogs() {
-        return auditLogRepository.findAll();
+        return auditLogRepository.findAllByOrderByTimestampDesc();
     }
 
     private void logAudit(Long userId, String action, String target) {

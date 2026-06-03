@@ -1,5 +1,6 @@
 package com.medisync.model.sql;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @OneToOne(mappedBy = "appointment", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties("appointment")
     private Invoice invoice;
     private java.time.LocalDateTime dateTime;
     private Integer durationMinutes; // [cite: 1]

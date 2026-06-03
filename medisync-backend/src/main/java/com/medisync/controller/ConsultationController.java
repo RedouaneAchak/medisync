@@ -45,6 +45,7 @@ public class ConsultationController {
                 consultationService.create(
                         request.getPatientId(),
                         request.getDoctorId(),
+                        request.getAppointmentId(),
                         request.getObservation(),
                         request.getPrescriptions()
                 )
@@ -143,12 +144,18 @@ public class ConsultationController {
         return ResponseEntity.ok(consultationService.getByDoctor(doctorId));
     }
 
+    @GetMapping
+    public ResponseEntity<List<Consultation>> getAll() {
+        return ResponseEntity.ok(consultationService.getAll());
+    }
+
     // ── DTOs internes ─────────────────────────────────────────────────────────
 
     @lombok.Data
     public static class ConsultationRequest {
         private Long patientId;
         private Long doctorId;
+        private Long appointmentId;
         private String observation;
         private java.util.List<String> prescriptions;
     }

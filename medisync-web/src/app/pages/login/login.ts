@@ -33,6 +33,10 @@ export class Login implements AfterViewInit {
   loading = false;
   googleLoading = false;
   googleEnabled = false;
+  twoFactorPending = false;
+  twoFactorCode = '';
+  twoFactorChallengeId = '';
+  twoFactorDevCode = '';
 
   constructor(
     private readonly authService: AuthService,
@@ -51,6 +55,11 @@ export class Login implements AfterViewInit {
   submit(): void {
     this.error = '';
 
+    if (this.twoFactorPending) {
+      this.verifyTwoFactor();
+      return;
+    }
+
     if (!this.validateForm()) {
       return;
     }
@@ -67,12 +76,18 @@ export class Login implements AfterViewInit {
         : this.authService.register(firstName, lastName, email, this.password, this.phone.trim());
 
     request.subscribe({
-      next: () => {
+      next: (response) => {
         this.loading = false;
         this.cdr.detectChanges();
-        void this.router.navigateByUrl(
-          this.route.snapshot.queryParamMap.get('returnUrl') ?? this.authService.defaultRouteFor(),
-        );
+        if (response.twoFactorRequired && response.twoFactorChallengeId) {
+          this.twoFactorPending = true;
+          this.twoFactorChallengeId = response.twoFactorChallengeId;
+          this.twoFactorDevCode = response.twoFactorCode ?? '';
+          this.password = '';
+          this.cdr.detectChanges();
+          return;
+        }
+        void this.router.navigateByUrl(this.destinationAfterLogin());
       },
       error: (err) => {
         this.loading = false;
@@ -94,6 +109,10 @@ export class Login implements AfterViewInit {
 
     this.mode = mode;
     this.error = '';
+    this.twoFactorPending = false;
+    this.twoFactorCode = '';
+    this.twoFactorChallengeId = '';
+    this.twoFactorDevCode = '';
     this.renderGoogleButton();
   }
 
@@ -113,12 +132,17 @@ export class Login implements AfterViewInit {
     this.googleLoading = true;
 
     this.authService.loginWithGoogle(response.credential).subscribe({
-      next: () => {
+      next: (response) => {
         this.googleLoading = false;
         this.cdr.detectChanges();
-        void this.router.navigateByUrl(
-          this.route.snapshot.queryParamMap.get('returnUrl') ?? this.authService.defaultRouteFor(),
-        );
+        if (response.twoFactorRequired && response.twoFactorChallengeId) {
+          this.twoFactorPending = true;
+          this.twoFactorChallengeId = response.twoFactorChallengeId;
+          this.twoFactorDevCode = response.twoFactorCode ?? '';
+          this.cdr.detectChanges();
+          return;
+        }
+        void this.router.navigateByUrl(this.destinationAfterLogin());
       },
       error: (err) => {
         this.googleLoading = false;
@@ -149,6 +173,37 @@ export class Login implements AfterViewInit {
     }
 
     return true;
+  }
+
+  private verifyTwoFactor(): void {
+    if (!this.twoFactorChallengeId || !this.twoFactorCode.trim()) {
+      this.error = 'Saisissez le code de double authentification.';
+      return;
+    }
+
+    this.loading = true;
+    this.authService.verifyAdminTwoFactor(this.twoFactorChallengeId, this.twoFactorCode).subscribe({
+      next: () => {
+        this.loading = false;
+        this.twoFactorPending = false;
+        this.cdr.detectChanges();
+        void this.router.navigateByUrl('/admin');
+      },
+      error: (err) => {
+        this.loading = false;
+        this.error = this.extractErrorMessage(err) ?? 'Code de double authentification invalide.';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private destinationAfterLogin(): string {
+    const user = this.authService.currentUser();
+    if (user?.role === 'ADMIN') {
+      return '/admin';
+    }
+
+    return this.route.snapshot.queryParamMap.get('returnUrl') ?? this.authService.defaultRouteFor(user);
   }
 
   private renderGoogleButton(): void {

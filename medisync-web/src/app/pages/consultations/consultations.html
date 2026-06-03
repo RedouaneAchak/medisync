@@ -1,46 +1,98 @@
 <section class="page-title">
   <span class="eyebrow">Espace Clinique</span>
   <h1>Consultations</h1>
-  <p>Gestion des dossiers de consultation, historique et notes médicales.</p>
+  <p>Creation des comptes rendus par patient, medecin et rendez-vous.</p>
 </section>
 
 <section class="content-grid">
   <article class="section-panel wide">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-      <h2 style="margin: 0;">Consultations enregistrées</h2>
-      <button class="btn primary">Nouvelle consultation</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem;">
+      <h2 style="margin: 0;">Consultations enregistrees</h2>
+      <button class="btn primary" type="button" (click)="showCreateForm = !showCreateForm">Nouvelle consultation</button>
     </div>
+
+    @if (showCreateForm) {
+      <form class="form-panel" (ngSubmit)="createConsultation()" style="margin-bottom: 1.5rem;">
+        <label>
+          Patient
+          <input [(ngModel)]="patientQuery" name="patientQuery" placeholder="Rechercher par nom du patient" required />
+        </label>
+        <div class="table-list">
+          @for (patient of filteredPatients.slice(0, 5); track patient.id) {
+            <button class="list-row" type="button" (click)="selectPatient(patient)">
+              <strong>{{ patientName(patient) }}</strong>
+              <span>{{ patient.user?.email ?? '-' }}</span>
+            </button>
+          }
+        </div>
+
+        <label>
+          Medecin
+          <input [(ngModel)]="doctorQuery" name="doctorQuery" placeholder="Rechercher par nom du medecin" required />
+        </label>
+        <div class="table-list">
+          @for (doctor of filteredDoctors.slice(0, 5); track doctor.id) {
+            <button class="list-row" type="button" (click)="selectDoctor(doctor)">
+              <strong>{{ doctorName(doctor) }}</strong>
+              <span>{{ doctor.specialty ?? 'Specialite non renseignee' }}</span>
+            </button>
+          }
+        </div>
+
+        <label>
+          Rendez-vous
+          <input [(ngModel)]="appointmentQuery" name="appointmentQuery" placeholder="Rechercher le RDV exact" required />
+        </label>
+        <div class="table-list">
+          @for (appointment of filteredAppointments.slice(0, 6); track appointment.id) {
+            <button class="list-row" type="button" (click)="selectAppointment(appointment)">
+              <strong>{{ appointmentLabel(appointment) }}</strong>
+              <span>{{ appointment.appointmentType ?? 'Consultation' }} · {{ appointment.status ?? 'PENDING' }}</span>
+            </button>
+          }
+        </div>
+
+        <label>
+          Observation
+          <textarea [(ngModel)]="form.observation" name="observation" rows="5" required></textarea>
+        </label>
+        <label>
+          Prescriptions
+          <textarea [(ngModel)]="form.prescriptionsText" name="prescriptionsText" rows="4" placeholder="Une prescription par ligne"></textarea>
+        </label>
+        <button class="btn primary" type="submit">Enregistrer la consultation</button>
+      </form>
+    }
 
     @if (error) {
       <div class="alert tone-red" style="padding: 1rem; background: #fee2e2; border-radius: 8px; color: #991b1b; margin-bottom: 1rem;">
         {{ error }}
       </div>
     }
+    @if (message) {
+      <p class="muted">{{ message }}</p>
+    }
 
     <div class="table-list">
       @if (loading) {
         <div style="padding: 2rem; text-align: center; color: #64748b;">
-          Chargement des données depuis le serveur...
+          Chargement des donnees depuis le serveur...
         </div>
       } @else if (consultations.length === 0) {
         <div style="padding: 3rem 1rem; text-align: center; background: #f8fafc; border-radius: 8px;">
-          <p style="color: #64748b; margin: 0; font-size: 1.1rem;">Aucune consultation trouvée.</p>
+          <p style="color: #64748b; margin: 0; font-size: 1.1rem;">Aucune consultation trouvee.</p>
         </div>
       } @else {
         @for (consultation of consultations; track consultation.id) {
-          <div class="list-row" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+          <div class="list-row" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #e2e8f0; gap: 1rem;">
             <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-              <strong style="font-size: 1.1rem; color: #0f172a;">Patient: {{ consultation.patient?.firstName }} {{ consultation.patient?.lastName }}</strong>
+              <strong style="font-size: 1.1rem; color: #0f172a;">{{ consultationPatientName(consultation) }}</strong>
               <span style="color: #64748b; font-size: 0.9rem;">
-                Motif: {{ consultation.reason ?? 'Non spécifié' }} | Date: {{ consultation.date | date:'short' }}
+                {{ consultationDoctorName(consultation) }} · {{ consultation.createdAt | date:'short' }}
               </span>
+              <span style="color: #64748b; font-size: 0.9rem;">{{ consultationAppointmentLabel(consultation) }}</span>
             </div>
-            <div style="display: flex; gap: 1rem; align-items: center;">
-              <span class="badge" [class.tone-blue]="consultation.status === 'EN ATTENTE'" [class.tone-green]="consultation.status === 'TERMINÉE'">
-                {{ consultation.status ?? 'EN COURS' }}
-              </span>
-              <button class="btn secondary" type="button">Ouvrir</button>
-            </div>
+            <button class="btn secondary" type="button" (click)="downloadPdf(consultation)">Telecharger PDF</button>
           </div>
         }
       }

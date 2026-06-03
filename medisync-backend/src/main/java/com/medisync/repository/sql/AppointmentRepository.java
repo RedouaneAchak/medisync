@@ -8,6 +8,7 @@ import java.util.List;
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
     // For the patient's mobile app history
     List<Appointment> findByPatientId(Long patientId);
+    List<Appointment> findByDoctorId(Long doctorId);
     
     // Crucial: Checks if a doctor is already busy during a specific time
     List<Appointment> findByDoctorIdAndDateTimeBetween(Long doctorId, LocalDateTime start, LocalDateTime end);

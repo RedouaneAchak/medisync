@@ -13,7 +13,10 @@ export interface AuthUser {
 }
 
 export interface AuthResponse extends AuthUser {
-  token: string;
+  token?: string;
+  twoFactorRequired?: boolean;
+  twoFactorChallengeId?: string;
+  twoFactorCode?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -32,6 +35,16 @@ export class AuthService {
 
   login(email: string, password: string) {
     return this.http.post<AuthResponse>(this.endpoint('/api/auth/login'), { email, password }).pipe(
+      tap((response) => {
+        if (response.token) {
+          this.storeSession(response);
+        }
+      }),
+    );
+  }
+
+  verifyAdminTwoFactor(challengeId: string, code: string) {
+    return this.http.post<AuthResponse>(this.endpoint('/api/auth/verify-admin-2fa'), { challengeId, code }).pipe(
       tap((response) => this.storeSession(response)),
     );
   }
@@ -44,6 +57,12 @@ export class AuthService {
 
   loginWithGoogle(idToken: string) {
     return this.http.post<AuthResponse>(this.endpoint('/api/auth/google'), { idToken }).pipe(
+      tap((response) => this.storeSession(response)),
+    );
+  }
+
+  refreshSession() {
+    return this.http.get<AuthResponse>(this.endpoint('/api/auth/me')).pipe(
       tap((response) => this.storeSession(response)),
     );
   }
@@ -84,7 +103,10 @@ export class AuthService {
   }
 
   private storeSession(response: AuthResponse): void {
-    const { token, ...user } = response;
+    const { token, twoFactorRequired, twoFactorChallengeId, twoFactorCode, ...user } = response;
+    if (!token) {
+      throw new Error('Authentication response missing token.');
+    }
     localStorage.setItem(this.tokenKey, token);
     localStorage.setItem(this.userKey, JSON.stringify(user));
     this.currentUser.set(user);

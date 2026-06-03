@@ -36,7 +36,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path   = request.getServletPath();
         String method = request.getMethod();
 
-        if (path.startsWith("/api/auth/")) return true;
+        if (path.equals("/api/auth/login")
+                || path.equals("/api/auth/register")
+                || path.equals("/api/auth/google")) {
+            return true;
+        }
 
         // Match the two public doctor routes exactly
         if ("GET".equalsIgnoreCase(method)) {

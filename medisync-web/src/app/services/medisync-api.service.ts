@@ -67,7 +67,17 @@ export interface BackendConsultation {
   observation?: string;
   prescriptions?: string[];
   files?: Record<string, unknown>[];
+  appointmentId?: number;
   createdAt?: string;
+}
+
+export interface BackendAuditLog {
+  id: string;
+  userId?: number;
+  action?: string;
+  targetEntity?: string;
+  timestamp?: string;
+  ipAddress?: string;
 }
 
 
@@ -175,6 +185,7 @@ export class MedisyncApiService {
     ssn: string;
     category: string;
     companyName: string;
+    password: string;
   }) {
     return this.http.post<BackendPatient>('/api/secretary/patients', body);
   }
@@ -187,7 +198,7 @@ export class MedisyncApiService {
     return this.http.get<BackendInvoice[]>(`/api/invoices/patient/${patientId}`);
   }
   getAuditLogs() {
-    return this.http.get<any>('/api/admin/audit-logs');
+    return this.http.get<BackendAuditLog[]>('/api/admin/audit-logs');
   }
   markInvoicePaid(id: number) {
     return this.http.patch<BackendInvoice>(`/api/secretary/invoices/${id}/pay`, {});
@@ -241,7 +252,7 @@ export class MedisyncApiService {
   getConsultations() {
     return this.http.get<BackendConsultation[]>('/api/consultations');
   }
-  createConsultation(body: { patientId: number; doctorId: number; observation: string; prescriptions: string[] }) {
+  createConsultation(body: { patientId: number; doctorId: number; appointmentId?: number; observation: string; prescriptions: string[] }) {
     return this.http.post<BackendConsultation>('/api/consultations', body);
   }
   searchPatientsByName(query: string) {

@@ -9,6 +9,8 @@ import com.medisync.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -72,8 +74,8 @@ public class AdminController {
      * Supprime un compte utilisateur. Action tracée dans AuditLog.
      */
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        adminService.deleteUser(id);
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id, @AuthenticationPrincipal UserDetails currentUser) {
+        adminService.deleteUser(id, currentUser.getUsername());
         return ResponseEntity.noContent().build();
     }
 

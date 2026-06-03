@@ -2,8 +2,10 @@ package com.medisync.service;
 
 import com.medisync.model.nosql.AuditLog;
 import com.medisync.model.nosql.Consultation;
+import com.medisync.model.sql.Appointment;
 import com.medisync.repository.nosql.AuditLogRepository;
 import com.medisync.repository.nosql.ConsultationRepository;
+import com.medisync.repository.sql.AppointmentRepository;
 import com.medisync.repository.sql.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,14 +22,31 @@ public class ConsultationService {
     private final ConsultationRepository consultationRepository;
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final InvoiceService invoiceService;
 
     // ── Création d'une consultation ───────────────────────────────────────────
 
     public Consultation create(Long patientId, Long doctorId,
                                String observation, List<String> prescriptions) {
+        return create(patientId, doctorId, null, observation, prescriptions);
+    }
+
+    public Consultation create(Long patientId, Long doctorId, Long appointmentId,
+                               String observation, List<String> prescriptions) {
+        Appointment appointment = null;
+        if (appointmentId != null) {
+            appointment = appointmentRepository.findById(appointmentId)
+                    .orElseThrow(() -> new RuntimeException("Rendez-vous introuvable : " + appointmentId));
+            if (!appointment.getPatient().getId().equals(patientId) || !appointment.getDoctor().getId().equals(doctorId)) {
+                throw new RuntimeException("Le rendez-vous choisi ne correspond pas au patient et au medecin.");
+            }
+        }
+
         Consultation c = new Consultation();
         c.setPatientId(patientId);
         c.setDoctorId(doctorId);
+        c.setAppointmentId(appointmentId);
         c.setObservation(observation);
         c.setPrescriptions(prescriptions != null ? prescriptions : new ArrayList<>());
         c.setFiles(new ArrayList<>());
@@ -36,6 +55,10 @@ public class ConsultationService {
         c.setCreatedAt(LocalDateTime.now());
 
         Consultation saved = consultationRepository.save(c);
+        if (appointment != null && appointment.getInvoice() == null) {
+            Double amount = appointment.getDoctor().getStandardConsultationRate();
+            invoiceService.generate(appointmentId, amount != null && amount > 0 ? amount : 300.0, "A_DEFINIR");
+        }
         logAudit(doctorId, "CREATE_CONSULTATION", "Patient#" + patientId);
         return saved;
     }
@@ -73,6 +96,10 @@ public class ConsultationService {
 
     public List<Consultation> getByPatient(Long patientId) {
         return consultationRepository.findByPatientId(patientId);
+    }
+
+    public List<Consultation> getAll() {
+        return consultationRepository.findAll();
     }
 
     public List<Consultation> getByDoctor(Long doctorId) {

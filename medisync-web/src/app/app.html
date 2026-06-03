@@ -9,10 +9,10 @@
       <a routerLink="/announcements" routerLinkActive="active">Annonces</a>
       @if (user) {
         <a routerLink="/doctors" routerLinkActive="active">Medecins</a>
-        @if (canSee(['PATIENT'])) {
+        @if (canSee(['PATIENT','SECRETARY'])) {
           <a routerLink="/booking" routerLinkActive="active">Rendez-vous</a>
         }
-        @if (canSee(['PATIENT', 'DOCTOR', 'ADMIN'])) {
+        @if (canSee(['PATIENT'])) {
           <a routerLink="/medical-record" routerLinkActive="active">Dossier</a>
         }
         @if (canSee(['PATIENT', 'SECRETARY', 'ADMIN'])) {
@@ -45,6 +45,9 @@
       @if (canSee(['PATIENT', 'DOCTOR','SECRETARY'])) {
       <a routerLink="/appointments" routerLinkActive="active">Planning</a>
     }
+      @if (canSee(['DOCTOR', 'ADMIN'])) {
+        <a routerLink="/consultations" routerLinkActive="active">Consultations</a>
+      }
       @if (canSee(['SECRETARY', 'ADMIN'])) {
         <a routerLink="/patients" routerLinkActive="active">Patients</a>
       }
@@ -56,6 +59,7 @@
       }
       @if (canSee(['ADMIN'])) {
         <a routerLink="/admin" routerLinkActive="active">Admin</a>
+        <a routerLink="/audit-logs" routerLinkActive="active">Audit-Logs</a>
       }
     </aside>
   }

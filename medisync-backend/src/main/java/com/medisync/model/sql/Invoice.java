@@ -1,5 +1,6 @@
 package com.medisync.model.sql;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public class Invoice {
     // Every appointment generates exactly one invoice
     @OneToOne
     @JoinColumn(name = "appointment_id", nullable = false)
+    @JsonIgnoreProperties("invoice")
     private Appointment appointment;
 
     private Double totalAmount;

@@ -21,7 +21,18 @@
       </label>
       <label>
         Email
-        <input [(ngModel)]="newPatient.email" name="email" type="email" required />
+        <input [(ngModel)]="newPatient.email" name="email" type="email" autocomplete="email" required />
+      </label>
+      <label>
+        Mot de passe
+        <input
+          [(ngModel)]="newPatient.password"
+          name="password"
+          type="password"
+          autocomplete="new-password"
+          minlength="10"
+          pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,72}$"
+          required />
       </label>
       <label>
         Telephone

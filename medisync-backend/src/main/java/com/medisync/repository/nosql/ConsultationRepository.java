@@ -8,4 +8,5 @@ public interface ConsultationRepository extends MongoRepository<Consultation, St
     // Grabs the entire medical history for a specific patient
     List<Consultation> findByPatientId(Long patientId);
     void deleteByPatientId(Long patientId);
+    void deleteByDoctorId(Long doctorId);
 }

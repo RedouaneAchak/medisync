@@ -7,4 +7,5 @@ import java.util.List;
 public interface AuditLogRepository extends MongoRepository<AuditLog, String> {
     // Allows the Admin to see a timeline of what a specific user did
     List<AuditLog> findByUserIdOrderByTimestampDesc(Long userId);
+    List<AuditLog> findAllByOrderByTimestampDesc();
 }

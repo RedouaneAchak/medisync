@@ -16,4 +16,7 @@ public class AuthenticationResponse {
     private String lastname;
     private String email;
     private String role;
+    private Boolean twoFactorRequired;
+    private String twoFactorChallengeId;
+    private String twoFactorCode;
 }

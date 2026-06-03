@@ -1,13 +1,14 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { MedisyncApiService } from '../../services/medisync-api.service';
+import { BackendAuditLog, MedisyncApiService } from '../../services/medisync-api.service';
 import { DatePipe } from '@angular/common';
 @Component({
   selector: 'app-audit-logs',
-  standalone: true,imports: [DatePipe],
+  standalone: true,
+  imports: [DatePipe],
   templateUrl: './audit-logs.html',
 })
 export class AuditLogs implements OnInit {
-  logs: any[] = [];
+  logs: BackendAuditLog[] = [];
   loading = true;
   error = '';
 
@@ -22,12 +23,11 @@ export class AuditLogs implements OnInit {
 
   private loadLogs(): void {
     this.loading = true;
-    // Make sure getAuditLogs() exists in your MedisyncApiService!
     this.api.getAuditLogs().subscribe({
       next: (data) => {
         this.logs = data;
         this.loading = false;
-        this.cdr.detectChanges(); // <-- Fixes the double-click bug
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erreur chargement logs', err);

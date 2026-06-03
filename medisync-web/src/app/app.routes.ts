@@ -37,6 +37,13 @@ export const routes: Routes = [
     title: 'Rendez-vous - MediSync',
   },
   {
+    path: 'consultations',
+    canActivate: [authGuard],
+    data: { roles: ['DOCTOR', 'ADMIN'] },
+    loadComponent: () => import('./pages/consultations/consultations').then((m) => m.Consultations),
+    title: 'Consultations - MediSync',
+  },
+  {
     path: 'medical-record',
     canActivate: [authGuard],
     data: { roles: ['PATIENT', 'DOCTOR', 'ADMIN'] },
@@ -82,6 +89,13 @@ export const routes: Routes = [
     data: { roles: ['ADMIN'] },
     loadComponent: () => import('./pages/admin/admin').then((m) => m.Admin),
     title: 'Administration - MediSync',
+  },
+  {
+    path: 'audit-logs',
+    canActivate: [authGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () => import('./pages/audit-logs/audit-logs').then((m) => m.AuditLogs),
+    title: 'Audit-Logs - MediSync',
   },
   { path: '**', redirectTo: '' },
 ];

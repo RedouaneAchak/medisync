@@ -53,7 +53,8 @@ public class SecretaryController {
                         request.getPhone(),
                         request.getSsn(),
                         request.getCategory(),
-                        request.getCompanyName()
+                        request.getCompanyName(),
+                        request.getPassword()
                 )
         );
     }
@@ -172,6 +173,7 @@ public class SecretaryController {
         private String ssn;
         private PatientCategory category;
         private String companyName;
+        private String password;
     }
 
     @lombok.Data

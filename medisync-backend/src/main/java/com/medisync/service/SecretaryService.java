@@ -9,17 +9,21 @@ import com.medisync.model.sql.User;
 import com.medisync.repository.sql.InvoiceRepository;
 import com.medisync.repository.sql.PatientRepository;
 import com.medisync.repository.sql.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import jakarta.transaction.Transactional;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class SecretaryService {
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{10,72}$");
 
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
@@ -28,35 +32,37 @@ public class SecretaryService {
     private final InvoiceService invoiceService;
     private final PasswordEncoder passwordEncoder;
 
-    // ── Création d'un compte patient ─────────────────────────────────────────
-
-    /**
-     * La secrétaire crée le compte d'un patient qui n'est pas encore inscrit.
-     */
     @Transactional
     public Patient createPatientAccount(String firstname, String lastname,
                                         String email, String phone,
                                         String ssn, PatientCategory category,
-                                        String companyName) {
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email déjà utilisé : " + email);
+                                        String companyName, String password) {
+        String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+        if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
+            throw new RuntimeException("Adresse email invalide.");
+        }
+        if (password == null || !PASSWORD_PATTERN.matcher(password).matches()) {
+            throw new RuntimeException("Mot de passe faible : 10 caracteres minimum avec majuscule, minuscule, chiffre et caractere special.");
+        }
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new RuntimeException("Email deja utilise : " + normalizedEmail);
         }
 
-        // Crée le User avec un mot de passe temporaire aléatoire
-        String tempPassword = UUID.randomUUID().toString().substring(0, 8) + "A1!";
+        String cleanFirstName = firstname == null ? "" : firstname.trim();
+        String cleanLastName = lastname == null ? "" : lastname.trim();
         User user = User.builder()
-                .firstname(firstname)
-                .lastname(lastname)
-                .email(email)
-                .password(passwordEncoder.encode(tempPassword))
+                .firstname(cleanFirstName)
+                .lastname(cleanLastName)
+                .email(normalizedEmail)
+                .password(passwordEncoder.encode(password))
                 .role(Role.PATIENT)
                 .build();
         user = userRepository.save(user);
 
         Patient patient = new Patient();
         patient.setUser(user);
-        patient.setFirstName(firstname);
-        patient.setLastName(lastname);
+        patient.setFirstName(cleanFirstName);
+        patient.setLastName(cleanLastName);
         patient.setPhoneNumber(phone);
         patient.setSocialSecurityNumber(ssn);
         patient.setCategory(category);
@@ -64,8 +70,6 @@ public class SecretaryService {
 
         return patientRepository.save(patient);
     }
-
-    // ── Gestion des rendez-vous ────────────────────────────────────────────────
 
     public Appointment createAppointment(Long patientId, Long doctorId, Long roomId,
                                          java.time.LocalDateTime dateTime, int duration,
@@ -89,8 +93,6 @@ public class SecretaryService {
     public List<Patient> getAllPatients() {
         return patientRepository.findAll();
     }
-
-    // ── Facturation ───────────────────────────────────────────────────────────
 
     public Invoice generateInvoice(Long appointmentId, Double amount, String paymentMethod) {
         return invoiceService.generate(appointmentId, amount, paymentMethod);

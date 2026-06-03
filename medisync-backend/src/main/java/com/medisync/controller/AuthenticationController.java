@@ -7,6 +7,8 @@ import com.medisync.dto.RegisterRequest;
 import com.medisync.service.AuthenticationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -31,8 +33,24 @@ public class AuthenticationController {
         return ResponseEntity.ok(service.authenticate(request));
     }
 
+    @PostMapping("/verify-admin-2fa")
+    public ResponseEntity<AuthenticationResponse> verifyAdminTwoFactor(@RequestBody TwoFactorRequest request) {
+        return ResponseEntity.ok(service.verifyAdminTwoFactor(request.getChallengeId(), request.getCode()));
+    }
+
     @PostMapping("/google")
     public ResponseEntity<AuthenticationResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
         return ResponseEntity.ok(service.googleLogin(request));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<AuthenticationResponse> currentUser(@AuthenticationPrincipal UserDetails currentUser) {
+        return ResponseEntity.ok(service.currentUser(currentUser.getUsername()));
+    }
+
+    @lombok.Data
+    public static class TwoFactorRequest {
+        private String challengeId;
+        private String code;
     }
 }
