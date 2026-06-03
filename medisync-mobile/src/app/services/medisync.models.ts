@@ -4,10 +4,13 @@ export interface AuthUser {
   lastname: string;
   email: string;
   role: 'PATIENT' | 'DOCTOR' | 'SECRETARY' | 'ADMIN';
+  permissions?: string[];
 }
 
 export interface AuthResponse extends AuthUser {
   token: string;
+  twoFactorEnabled?: boolean;
+  requiresTwoFactorSetup?: boolean;
 }
 
 export interface BackendUser {
@@ -16,6 +19,8 @@ export interface BackendUser {
   lastname: string;
   email: string;
   role: string;
+  extraPermissions?: string[];
+  effectivePermissions?: string[];
 }
 
 export interface BackendDoctor {
@@ -25,6 +30,10 @@ export interface BackendDoctor {
   bio?: string;
   spokenLanguages?: string;
   standardConsultationRate?: number;
+  availabilityStart?: string;
+  availabilityEnd?: string;
+  workingDays?: string;
+  defaultSlotMinutes?: number;
 }
 
 export interface BackendPatient {
@@ -36,7 +45,21 @@ export interface BackendPatient {
   socialSecurityNumber?: string;
   category?: string;
   companyName?: string;
+  allergies?: string;
+  medicalAntecedents?: string;
+  currentTreatments?: string;
   guardian?: Pick<BackendPatient, 'id' | 'firstName' | 'lastName' | 'user'>;
+}
+
+export interface BackendMedicalAct {
+  id: number;
+  code: string;
+  label: string;
+  category?: string;
+  sector?: string;
+  durationMinutes?: number;
+  baseTariff?: number;
+  description?: string;
 }
 
 export interface BackendRoom {
@@ -79,8 +102,71 @@ export interface BackendConsultation {
   id: string;
   patientId?: number;
   doctorId?: number;
+  templateName?: string;
+  consultationReason?: string;
+  diagnosis?: string;
   observation?: string;
+  followUpPlan?: string;
+  vitals?: Record<string, string>;
   prescriptions?: string[];
+  prescriptionItems?: BackendPrescriptionItem[];
   files?: BackendConsultationFile[];
   createdAt?: string;
+}
+
+export interface BackendPrescriptionItem {
+  medicationName: string;
+  dosage?: string;
+  frequency?: string;
+  durationDays?: number;
+  instructions?: string;
+}
+
+export interface BackendMedicationSuggestion {
+  name: string;
+  form: string;
+  commonDosage: string;
+  frequencyHint: string;
+}
+
+export interface BackendNotification {
+  title: string;
+  detail: string;
+  tone: string;
+  category: string;
+  createdAt?: string;
+}
+
+export interface BackendClinicProfile {
+  id?: number;
+  name: string;
+  address: string;
+  city: string;
+  phone: string;
+  email: string;
+  latitude?: number;
+  longitude?: number;
+  openingHours?: string;
+  specialtiesOffered?: string;
+}
+
+export interface BackendPatientFeedback {
+  id: string;
+  patientId: number;
+  doctorId?: number;
+  doctorName?: string;
+  appointmentId?: number;
+  type: 'REVIEW' | 'COMPLAINT';
+  rating?: number;
+  title: string;
+  message: string;
+  status: 'OPEN' | 'IN_REVIEW' | 'RESOLVED';
+  createdAt?: string;
+}
+
+export interface BackendDoctorFeedbackSummary {
+  doctorId: number;
+  averageRating: number;
+  reviewCount: number;
+  complaintCount: number;
 }

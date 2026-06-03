@@ -9,6 +9,26 @@
   }
 </div>
 
+@if (showPlanningControls) {
+  <section class="section-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Vue planning</span>
+        <h2>{{ planningWindowLabel }}</h2>
+      </div>
+    </div>
+    <div class="tabs">
+      @for (mode of planningModes; track mode) {
+        <button [class.active]="planningMode === mode" (click)="setPlanningMode(mode)">{{ mode }}</button>
+      }
+    </div>
+    <label>
+      Date de reference
+      <input [(ngModel)]="planningDate" name="planningDate" type="date" (change)="onPlanningDateChange()" />
+    </label>
+  </section>
+}
+
 <section class="stats-grid three">
   <article class="stat-card">
     <span>A venir</span>

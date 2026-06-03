@@ -6,8 +6,9 @@ import { forkJoin } from 'rxjs';
 
 import { TabBarComponent } from '../../shared/tab-bar/tab-bar.component';
 import { AuthService } from '../../services/auth.service';
+import { LocalReminderService } from '../../services/local-reminder.service';
 import { MedisyncApiService } from '../../services/medisync-api.service';
-import { BackendAppointment, BackendDoctor } from '../../services/medisync.models';
+import { BackendAppointment, BackendDoctor, BackendDoctorFeedbackSummary } from '../../services/medisync.models';
 
 interface DoctorPreview {
   id: number;
@@ -45,11 +46,13 @@ export class HomePage {
   nextAppointment: NextAppointmentCard | null = null;
   recentDoctors: DoctorPreview[] = [];
   error = '';
+  private feedbackMap = new Map<number, BackendDoctorFeedbackSummary>();
 
   constructor(
     private readonly router: Router,
     private readonly authService: AuthService,
     private readonly api: MedisyncApiService,
+    private readonly reminderService: LocalReminderService,
   ) {}
 
   ionViewWillEnter(): void {
@@ -89,8 +92,18 @@ export class HomePage {
     forkJoin({
       appointments: this.api.getPatientAppointments(user.userId),
       doctors: this.api.getDoctors(),
+      summaries: this.api.getDoctorFeedbackSummaries(),
     }).subscribe({
-      next: ({ appointments, doctors }: { appointments: BackendAppointment[]; doctors: BackendDoctor[] }) => {
+      next: ({
+        appointments,
+        doctors,
+        summaries,
+      }: {
+        appointments: BackendAppointment[];
+        doctors: BackendDoctor[];
+        summaries: BackendDoctorFeedbackSummary[];
+      }) => {
+        this.feedbackMap = new Map(summaries.map((item) => [item.doctorId, item]));
         const upcoming = appointments
           .filter((appointment) => appointment.status !== 'CANCELLED' && new Date(appointment.dateTime).getTime() >= Date.now())
           .sort((left, right) => new Date(left.dateTime).getTime() - new Date(right.dateTime).getTime());
@@ -98,6 +111,7 @@ export class HomePage {
         this.nextAppointment = upcoming[0] ? this.toNextAppointment(upcoming[0]) : null;
         this.notificationCount = Math.min(2, upcoming.length);
         this.recentDoctors = this.buildRecentDoctors(appointments, doctors).slice(0, 3);
+        void this.reminderService.syncAppointmentReminders(appointments);
       },
       error: () => {
         this.error = 'Impossible de charger votre tableau de bord mobile.';
@@ -139,7 +153,7 @@ export class HomePage {
       id: doctor.id,
       name: `Dr. ${firstName} ${lastName}`.trim(),
       specialty: doctor.specialty ?? 'Médecine générale',
-      rating: 4.8,
+      rating: Number((this.feedbackMap.get(doctor.id)?.averageRating ?? 4.8).toFixed(1)),
       location: 'MediSync',
       initials: `${firstName[0] ?? 'D'}${lastName[0] ?? 'R'}`.toUpperCase(),
       avatarBg: colors.bg,

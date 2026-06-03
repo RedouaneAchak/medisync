@@ -31,13 +31,75 @@
         </label>
       }
       <label>Convention <input [(ngModel)]="companyName" name="companyName" /></label>
+      <label>Allergies
+        <textarea [(ngModel)]="allergies" name="allergies" rows="3" placeholder="Ex. pénicilline, arachides..."></textarea>
+      </label>
+      <label>Antécédents médicaux
+        <textarea [(ngModel)]="medicalAntecedents" name="medicalAntecedents" rows="3" placeholder="Ex. asthme, diabète, chirurgie..."></textarea>
+      </label>
+      <label>Traitements en cours
+        <textarea [(ngModel)]="currentTreatments" name="currentTreatments" rows="3" placeholder="Ex. Metformine 850 mg matin et soir"></textarea>
+      </label>
     }
 
     @if (isDoctor) {
       <label>Specialite <input [(ngModel)]="specialty" name="specialty" /></label>
       <label>Langues parlees <input [(ngModel)]="spokenLanguages" name="spokenLanguages" /></label>
       <label>Tarif standard <input [(ngModel)]="standardConsultationRate" name="standardConsultationRate" type="number" /></label>
+      <label>Début disponibilité
+        <input [(ngModel)]="availabilityStart" name="availabilityStart" type="time" />
+      </label>
+      <label>Fin disponibilité
+        <input [(ngModel)]="availabilityEnd" name="availabilityEnd" type="time" />
+      </label>
+      <label>Jours travaillés
+        <input [(ngModel)]="workingDays" name="workingDays" placeholder="MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY" />
+      </label>
+      <label>Durée de créneau par défaut
+        <select [(ngModel)]="defaultSlotMinutes" name="defaultSlotMinutes">
+          <option [ngValue]="15">15 min</option>
+          <option [ngValue]="30">30 min</option>
+          <option [ngValue]="60">60 min</option>
+        </select>
+      </label>
       <label>Bio <textarea [(ngModel)]="bio" name="bio" rows="4"></textarea></label>
+      <div class="summary-box">
+        <strong>Indisponibilites</strong>
+        <span>Bloquez vos periodes de conge ou d absence pour retirer les creneaux de la reservation.</span>
+      </div>
+      <label>Debut
+        <input [(ngModel)]="unavailabilityForm.startDateTime" name="unavailabilityStartDateTime" type="datetime-local" />
+      </label>
+      <label>Fin
+        <input [(ngModel)]="unavailabilityForm.endDateTime" name="unavailabilityEndDateTime" type="datetime-local" />
+      </label>
+      <label>Motif
+        <input [(ngModel)]="unavailabilityForm.reason" name="unavailabilityReason" placeholder="Conge, formation, bloc operatoire..." />
+      </label>
+      <label>Type
+        <select [(ngModel)]="unavailabilityForm.type" name="unavailabilityType">
+          <option value="LEAVE">LEAVE</option>
+          <option value="BLOCKED">BLOCKED</option>
+          <option value="TRAINING">TRAINING</option>
+        </select>
+      </label>
+      <button class="btn secondary full" type="button" (click)="saveDoctorUnavailability()" [disabled]="saving">
+        Ajouter une indisponibilite
+      </button>
+      <div class="table-list">
+        @for (item of doctorUnavailabilities; track item.id) {
+          <div class="list-row">
+            <div>
+              <strong>{{ item.reason }}</strong>
+              <span>{{ formatDateTime(item.startDateTime) }} → {{ formatDateTime(item.endDateTime) }}</span>
+            </div>
+            <span class="badge tone-yellow">{{ item.type }}</span>
+            <button type="button" (click)="deleteDoctorUnavailability(item.id)">Supprimer</button>
+          </div>
+        } @empty {
+          <p class="muted">Aucune indisponibilite enregistree.</p>
+        }
+      </div>
     }
 
     <div *ngIf="error" class="message-box"
@@ -55,12 +117,68 @@
 
   </form>
   <aside class="section-panel">
-    <h2>Notifications</h2>
-    <label class="check-row"><input type="checkbox" checked /> Rappels 24h avant
-      rendez-vous</label>
-    <label class="check-row"><input type="checkbox" checked /> Alertes de
-      facturation</label>
-    <label class="check-row"><input type="checkbox" /> Resume
-      hebdomadaire</label>
+    @if (isPatient) {
+      <h2>Avis et reclamations</h2>
+      <label>Rendez-vous concerné
+        <select [(ngModel)]="feedbackForm.appointmentId" name="feedbackAppointmentId">
+          <option [ngValue]="0">Choisir un rendez-vous passé</option>
+          @for (appointment of patientAppointments; track appointment.id) {
+            <option [ngValue]="appointment.id">
+              {{ formatDateTime(appointment.dateTime) }} · {{ appointment.doctor?.user?.firstname }} {{ appointment.doctor?.user?.lastname }}
+            </option>
+          }
+        </select>
+      </label>
+      <label>Type
+        <select [(ngModel)]="feedbackForm.type" name="feedbackType">
+          <option value="REVIEW">Avis</option>
+          <option value="COMPLAINT">Réclamation</option>
+        </select>
+      </label>
+      @if (feedbackForm.type === 'REVIEW') {
+        <label>Note / 5
+          <select [(ngModel)]="feedbackForm.rating" name="feedbackRating">
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="4">4</option>
+            <option [ngValue]="3">3</option>
+            <option [ngValue]="2">2</option>
+            <option [ngValue]="1">1</option>
+          </select>
+        </label>
+      }
+      <label>Titre
+        <input [(ngModel)]="feedbackForm.title" name="feedbackTitle" placeholder="Résumé de votre retour" />
+      </label>
+      <label>Message
+        <textarea [(ngModel)]="feedbackForm.message" name="feedbackMessage" rows="4" placeholder="Décrivez votre expérience ou votre réclamation"></textarea>
+      </label>
+      <button class="btn secondary full" type="button" (click)="savePatientFeedback()" [disabled]="saving">
+        Envoyer mon retour
+      </button>
+      <div class="table-list">
+        @for (item of patientFeedback; track item.id) {
+          <div class="list-row">
+            <div>
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.doctorName }} · {{ formatFeedbackDate(item.createdAt) }}</span>
+            </div>
+            <div class="row-meta">
+              <span class="badge" [class]="item.type === 'REVIEW' ? 'tone-green' : 'tone-yellow'">{{ item.type }}</span>
+              <span>{{ item.status }}</span>
+            </div>
+          </div>
+        } @empty {
+          <p class="muted">Aucun avis ni réclamation envoyé pour le moment.</p>
+        }
+      </div>
+    } @else {
+      <h2>Notifications</h2>
+      <label class="check-row"><input type="checkbox" checked /> Rappels 24h avant
+        rendez-vous</label>
+      <label class="check-row"><input type="checkbox" checked /> Alertes de
+        facturation</label>
+      <label class="check-row"><input type="checkbox" /> Resume
+        hebdomadaire</label>
+    }
   </aside>
 </section>

@@ -2,6 +2,7 @@ package com.medisync.controller;
 
 import com.medisync.model.enums.PatientCategory;
 import com.medisync.model.sql.Appointment;
+import com.medisync.model.sql.CareSheet;
 import com.medisync.model.sql.Invoice;
 import com.medisync.model.sql.Patient;
 import com.medisync.service.SecretaryService;
@@ -61,6 +62,23 @@ public class SecretaryController {
     @GetMapping("/patients")
     public ResponseEntity<List<Patient>> getAllPatients() {
         return ResponseEntity.ok(secretaryService.getAllPatients());
+    }
+
+    @PostMapping("/care-sheets")
+    public ResponseEntity<CareSheet> createCareSheet(@RequestBody CareSheetCreateRequest request) {
+        return ResponseEntity.ok(
+                secretaryService.generateCareSheet(
+                        request.getAppointmentId(),
+                        request.getMedicalActId(),
+                        request.getAmount(),
+                        request.getNotes()
+                )
+        );
+    }
+
+    @GetMapping("/care-sheets")
+    public ResponseEntity<List<CareSheet>> getAllCareSheets() {
+        return ResponseEntity.ok(secretaryService.getAllCareSheets());
     }
 
     // ── Gestion des rendez-vous ────────────────────────────────────────────────
@@ -143,6 +161,13 @@ public class SecretaryController {
         return ResponseEntity.ok(secretaryService.markInvoicePaid(id));
     }
 
+    @PostMapping("/care-sheets/{id}/invoice")
+    public ResponseEntity<Invoice> generateInvoiceFromCareSheet(
+            @PathVariable Long id,
+            @RequestBody CareSheetInvoiceRequest request) {
+        return ResponseEntity.ok(secretaryService.generateInvoiceFromCareSheet(id, request.getPaymentMethod()));
+    }
+
     /**
      * GET /api/secretary/invoices/unpaid
      * Liste toutes les factures impayées pour le suivi des créances.
@@ -189,9 +214,22 @@ public class SecretaryController {
     }
 
     @lombok.Data
+    public static class CareSheetCreateRequest {
+        private Long appointmentId;
+        private Long medicalActId;
+        private Double amount;
+        private String notes;
+    }
+
+    @lombok.Data
     public static class InvoiceCreateRequest {
         private Long appointmentId;
         private Double amount;
+        private String paymentMethod;
+    }
+
+    @lombok.Data
+    public static class CareSheetInvoiceRequest {
         private String paymentMethod;
     }
 }

@@ -1,12 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonContent } from '@ionic/angular/standalone';
-import { forkJoin } from 'rxjs';
 
 import { TabBarComponent } from '../../shared/tab-bar/tab-bar.component';
 import { AuthService } from '../../services/auth.service';
 import { MedisyncApiService } from '../../services/medisync-api.service';
-import { BackendAppointment, BackendInvoice } from '../../services/medisync.models';
+import { BackendNotification } from '../../services/medisync.models';
 
 interface NotificationItem {
   icon: string;
@@ -50,46 +49,11 @@ export class NotificationsPage {
     }
 
     this.error = '';
-    forkJoin({
-      appointments: this.api.getPatientAppointments(user.userId),
-      invoices: this.api.getPatientInvoices(user.userId),
-    }).subscribe({
-      next: ({ appointments, invoices }: { appointments: BackendAppointment[]; invoices: BackendInvoice[] }) => {
-        const now = Date.now();
-        const generated: NotificationItem[] = [];
-
-        appointments
-          .filter((appointment) => appointment.status !== 'CANCELLED')
-          .forEach((appointment) => {
-            const date = new Date(appointment.dateTime);
-            const diffHours = Math.round((date.getTime() - now) / 3600000);
-            if (diffHours >= 0 && diffHours <= 24) {
-              generated.push({
-                icon: '📅',
-                iconBg: '#dbeafe',
-                title: 'Rappel de rendez-vous',
-                body: `Votre RDV ${appointment.appointmentType ?? 'consultation'} est prévu le ${date.toLocaleDateString('fr-MA')} à ${date.toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' })}.`,
-                time: diffHours <= 1 ? 'Dans moins d’une heure' : `Dans ${diffHours} heure(s)`,
-                read: false,
-              });
-            }
-          });
-
-        invoices
-          .filter((invoice) => !invoice.isPaid)
-          .forEach((invoice) => {
-            generated.push({
-              icon: '💳',
-              iconBg: '#fef3c7',
-              title: 'Facture en attente',
-              body: `La facture FAC-${invoice.id} de ${invoice.totalAmount} MAD est encore à régler.`,
-              time: 'Cette semaine',
-              read: false,
-            });
-          });
-
-        if (!generated.length) {
-          generated.push({
+    this.api.getPatientNotifications(user.userId).subscribe({
+      next: (items: BackendNotification[]) => {
+        const mapped = items.map((item) => this.toNotificationItem(item));
+        if (!mapped.length) {
+          mapped.push({
             icon: '✅',
             iconBg: '#dcfce7',
             title: 'Aucune alerte urgente',
@@ -99,12 +63,54 @@ export class NotificationsPage {
           });
         }
 
-        this.todayNotifs = generated.slice(0, 2);
-        this.weekNotifs = generated.slice(2);
+        this.todayNotifs = mapped.slice(0, 2);
+        this.weekNotifs = mapped.slice(2);
       },
       error: () => {
         this.error = 'Impossible de charger les notifications.';
       },
     });
+  }
+
+  private toNotificationItem(item: BackendNotification): NotificationItem {
+    const palette: Record<string, { icon: string; bg: string }> = {
+      green: { icon: '✅', bg: '#dcfce7' },
+      yellow: { icon: '💳', bg: '#fef3c7' },
+      red: { icon: '⚠️', bg: '#fee2e2' },
+      blue: { icon: '📅', bg: '#dbeafe' },
+    };
+    const visual = palette[item.tone] ?? palette['blue'];
+
+    return {
+      icon: visual.icon,
+      iconBg: visual.bg,
+      title: item.title,
+      body: item.detail,
+      time: this.toRelativeTime(item.createdAt),
+      read: false,
+    };
+  }
+
+  private toRelativeTime(value?: string): string {
+    if (!value) {
+      return 'Maintenant';
+    }
+
+    const date = new Date(value);
+    const diffMinutes = Math.round((Date.now() - date.getTime()) / 60000);
+
+    if (diffMinutes <= 1) {
+      return 'À l’instant';
+    }
+    if (diffMinutes < 60) {
+      return `Il y a ${diffMinutes} min`;
+    }
+
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) {
+      return `Il y a ${diffHours} h`;
+    }
+
+    return date.toLocaleDateString('fr-MA');
   }
 }

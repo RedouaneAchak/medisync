@@ -30,18 +30,29 @@
     </label>
     }
     <label>
-      Email
-      <input [(ngModel)]="email" name="email" type="email" />
+      {{ mode === 'signin' ? 'Email ou NSS' : 'Email' }}
+      <input [(ngModel)]="email" name="email" [type]="mode === 'signin' ? 'text' : 'email'" placeholder="email ou numero de securite sociale" />
     </label>
     <label>
       Mot de passe
       <input [(ngModel)]="password" name="password" type="password" />
     </label>
+    @if (mode === 'signin') {
+    <label>
+      Code 2FA admin
+      <input [(ngModel)]="otpCode" name="otpCode" type="text" inputmode="numeric" placeholder="Optionnel sauf compte ADMIN" />
+    </label>
+    }
     @if (mode === 'signup') {
     <label>
       Telephone
       <input [(ngModel)]="phone" name="phone" placeholder="+212 ..." />
     </label>
+    <label>
+      Numero de securite sociale
+      <input [(ngModel)]="socialSecurityNumber" name="socialSecurityNumber" placeholder="Facultatif" />
+    </label>
+    <p class="muted">Mot de passe fort requis: 8 caracteres min, 1 majuscule, 1 chiffre et 1 caractere special.</p>
     }
     @if (error) {
     <p

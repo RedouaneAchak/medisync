@@ -17,6 +17,12 @@
         }
       </select>
     </label>
+    @if (canBookForSomeoneElse) {
+    <label class="check-row">
+      <input [(ngModel)]="forSomeoneElse" name="thirdParty" type="checkbox" />
+      Rendez-vous pour un tiers ou mineur
+    </label>
+    }
     @if (canChoosePatient) {
     <label>
       Patient
@@ -31,12 +37,13 @@
     </label>
     }
     <label>
-      Motif
-      <select [(ngModel)]="motif" name="motif">
-        <option>Premiere visite</option>
-        <option>Suivi</option>
-        <option>Controle</option>
-        <option>Urgence</option>
+      Acte / motif
+      <select [(ngModel)]="selectedMedicalActId" name="medicalAct" (ngModelChange)="onMedicalActChange()">
+        @for (act of medicalActs; track act.id) {
+        <option [ngValue]="act.id">
+          {{ act.label }} · {{ act.durationMinutes }} min · {{ act.baseTariff }} MAD
+        </option>
+        }
       </select>
     </label>
     <label>
@@ -53,10 +60,6 @@
           room.equipmentType }}</option>
         }
       </select>
-    </label>
-    <label class="check-row">
-      <input [(ngModel)]="forSomeoneElse" name="thirdParty" type="checkbox" />
-      Rendez-vous pour un tiers ou mineur
     </label>
     <label>
       Description
@@ -96,7 +99,8 @@
     <div class="summary-box">
       <strong>Resume</strong>
       <span>{{ selectedDoctor }}</span>
-      <span>{{ motif }} · {{ selectedDate }} a {{ selectedTime }}</span>
+      <span>{{ selectedMedicalAct?.label || 'Consultation' }} · {{ selectedDate }} a {{ selectedTime }}</span>
+      <span>{{ selectedMedicalAct?.durationMinutes || 30 }} min · {{ selectedMedicalAct?.baseTariff || 0 }} MAD</span>
     </div>
   </aside>
 </section>

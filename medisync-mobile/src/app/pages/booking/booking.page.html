@@ -15,18 +15,29 @@
       <div class="doctor-meta">⭐ {{ doctor.rating }} • 📍 {{ doctor.location }}</div>
     </div>
   </div>
+  <div class="section-label" *ngIf="clinicProfile">
+    {{ clinicProfile.name }} • {{ clinicProfile.address }}, {{ clinicProfile.city }}
+  </div>
 
   <div class="scroll-content">
     <div class="section-label" *ngIf="error">{{ error }}</div>
 
-    <div class="section-label">Motif de consultation</div>
-    <div class="motif-grid">
-      <div class="motif-item"
-           *ngFor="let motif of motifs"
-           [class.selected]="selectedMotif === motif"
-           (click)="selectedMotif = motif">
-        {{ motif }}
-      </div>
+    <div class="section-label" *ngIf="canChooseDependent">Patient concerné</div>
+    <div class="select-wrapper" *ngIf="canChooseDependent">
+      <select [(ngModel)]="selectedPatientId">
+        <option *ngFor="let patient of bookingPatients" [ngValue]="patient.id">
+          {{ patient.firstName || patient.user?.firstname }} {{ patient.lastName || patient.user?.lastname }}
+        </option>
+      </select>
+    </div>
+
+    <div class="section-label">Acte médical</div>
+    <div class="select-wrapper">
+      <select [(ngModel)]="selectedMedicalActId" (ngModelChange)="refreshSlots()">
+        <option *ngFor="let act of medicalActs" [ngValue]="act.id">
+          {{ act.label }} • {{ act.durationMinutes }} min • {{ act.baseTariff }} MAD
+        </option>
+      </select>
     </div>
 
     <div class="section-label">Choisir une date</div>
@@ -55,6 +66,10 @@
 
     <button class="btn-confirm" (click)="confirmBooking()" [disabled]="!canConfirm() || saving">
       {{ saving ? 'Confirmation...' : 'Confirmer le rendez-vous' }}
+    </button>
+
+    <button class="btn-confirm secondary" *ngIf="clinicProfile" (click)="openDirections()" type="button">
+      Itinéraire vers la clinique
     </button>
 
     <div style="height: 80px;"></div>

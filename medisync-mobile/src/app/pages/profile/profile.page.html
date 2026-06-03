@@ -74,12 +74,61 @@
       <div class="setting-row">
         <div class="setting-info">
           <span class="setting-icon">👆</span>
-          <span class="setting-label">Connexion biométrique</span>
+          <span class="setting-label">Déverrouillage biométrique</span>
         </div>
-        <div class="toggle" [class.on]="bioEnabled" (click)="bioEnabled = !bioEnabled">
+        <div class="toggle" [class.on]="bioEnabled" (click)="toggleBiometric()">
           <div class="toggle-circle"></div>
         </div>
       </div>
+    </div>
+    <div class="person-relation" style="margin: 10px 0 16px;">{{ biometricInfo }}</div>
+
+    <div class="section-label">Avis et réclamations</div>
+    <div class="info-card">
+      <label style="display:block; margin-bottom:8px;">Rendez-vous concerné</label>
+      <select [(ngModel)]="feedbackForm.appointmentId" style="width:100%; margin-bottom:12px; padding:10px; border-radius:12px;">
+        <option [ngValue]="0">Choisir un rendez-vous passé</option>
+        <option *ngFor="let appointment of pastAppointments" [ngValue]="appointment.id">
+          {{ formatFeedbackDate(appointment.dateTime) }} • {{ appointment.doctor?.user?.firstname }} {{ appointment.doctor?.user?.lastname }}
+        </option>
+      </select>
+
+      <label style="display:block; margin-bottom:8px;">Type de retour</label>
+      <select [(ngModel)]="feedbackForm.type" style="width:100%; margin-bottom:12px; padding:10px; border-radius:12px;">
+        <option value="REVIEW">Avis</option>
+        <option value="COMPLAINT">Réclamation</option>
+      </select>
+
+      <div *ngIf="feedbackForm.type === 'REVIEW'">
+        <label style="display:block; margin-bottom:8px;">Note / 5</label>
+        <select [(ngModel)]="feedbackForm.rating" style="width:100%; margin-bottom:12px; padding:10px; border-radius:12px;">
+          <option [ngValue]="5">5</option>
+          <option [ngValue]="4">4</option>
+          <option [ngValue]="3">3</option>
+          <option [ngValue]="2">2</option>
+          <option [ngValue]="1">1</option>
+        </select>
+      </div>
+
+      <label style="display:block; margin-bottom:8px;">Titre</label>
+      <input [(ngModel)]="feedbackForm.title" style="width:100%; margin-bottom:12px; padding:10px; border-radius:12px; border:1px solid #d6d6d6;" placeholder="Résumé de votre retour" />
+
+      <label style="display:block; margin-bottom:8px;">Message</label>
+      <textarea [(ngModel)]="feedbackForm.message" rows="4" style="width:100%; margin-bottom:12px; padding:10px; border-radius:12px; border:1px solid #d6d6d6;" placeholder="Décrivez votre expérience ou votre réclamation"></textarea>
+
+      <button class="btn-add-person" (click)="submitFeedback()">Envoyer mon retour</button>
+      <div class="person-relation" *ngIf="feedbackInfo" style="margin-top: 10px;">{{ feedbackInfo }}</div>
+    </div>
+
+    <div class="person-card" *ngFor="let item of feedbackItems">
+      <div class="avatar-sm" [style.background]="item.type === 'REVIEW' ? '#dcfce7' : '#fef3c7'" [style.color]="item.type === 'REVIEW' ? '#166534' : '#92400e'">
+        {{ item.type === 'REVIEW' ? '★' : '!' }}
+      </div>
+      <div class="person-info">
+        <div class="person-name">{{ item.title }}</div>
+        <div class="person-relation">{{ item.doctorName }} • {{ formatFeedbackDate(item.createdAt) }} • {{ item.status }}</div>
+      </div>
+      <span class="pill pill-gray">{{ item.rating ? item.rating + '/5' : item.type }}</span>
     </div>
 
     <button class="btn-logout" (click)="logout()">Se déconnecter</button>

@@ -1,12 +1,13 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
-import { BackendAppointment, BackendInvoice, MedisyncApiService } from '../../services/medisync-api.service';
+import { BackendAppointment, BackendCareSheet, BackendInvoice, BackendMedicalAct, MedisyncApiService } from '../../services/medisync-api.service';
 
 interface InvoiceRow {
   backendId: number;
   id: string;
   patient: string;
+  email: string;
   appointment: string;
   amount: number;
   method: string;
@@ -21,6 +22,8 @@ interface InvoiceRow {
 export class Billing {
   invoices: InvoiceRow[] = [];
   pendingAppointments: BackendAppointment[] = [];
+  careSheets: BackendCareSheet[] = [];
+  medicalActs: BackendMedicalAct[] = [];
   error = '';
   message = '';
   paymentMethods = ['CASH', 'CARD', 'INSURANCE'];
@@ -28,6 +31,12 @@ export class Billing {
     appointmentId: 0,
     amount: 300,
     paymentMethod: 'CASH',
+  };
+  newCareSheet = {
+    appointmentId: 0,
+    medicalActId: 0,
+    amount: 300,
+    notes: '',
   };
 
   constructor(
@@ -47,6 +56,7 @@ export class Billing {
 
     if (this.canCollectPayments) {
       this.loadAppointmentsForInvoicing();
+      this.loadCareSheetData();
     }
   }
 
@@ -78,6 +88,56 @@ export class Billing {
     });
   }
 
+  exportInvoice(invoice: InvoiceRow): void {
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      this.message = 'Impossible d’ouvrir la fenêtre d’export.';
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${invoice.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 32px; color: #1f2937; }
+            h1 { margin-bottom: 8px; }
+            .muted { color: #6b7280; margin-bottom: 24px; }
+            .line { margin: 12px 0; }
+            .total { font-size: 24px; font-weight: bold; margin-top: 24px; }
+          </style>
+        </head>
+        <body>
+          <h1>${invoice.id}</h1>
+          <div class="muted">Facture MediSync exportable en PDF depuis la boîte de dialogue d’impression.</div>
+          <div class="line"><strong>Patient:</strong> ${invoice.patient}</div>
+          <div class="line"><strong>Prestation:</strong> ${invoice.appointment}</div>
+          <div class="line"><strong>Paiement:</strong> ${invoice.method}</div>
+          <div class="line"><strong>Statut:</strong> ${invoice.paid ? 'Payée' : 'En attente'}</div>
+          <div class="total">${invoice.amount} MAD</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  }
+
+  emailInvoice(invoice: InvoiceRow): void {
+    if (!invoice.email) {
+      this.message = 'Aucune adresse email disponible pour ce patient.';
+      return;
+    }
+    this.api.sendInvoiceEmail(invoice.backendId).subscribe({
+      next: () => {
+        this.message = `Facture ${invoice.id} envoyée par email à ${invoice.email}.`;
+      },
+      error: () => {
+        this.message = 'Envoi email impossible. Vérifiez la configuration SMTP du backend.';
+      },
+    });
+  }
+
   createInvoice(): void {
     this.message = '';
 
@@ -105,6 +165,40 @@ export class Billing {
     });
   }
 
+  createCareSheet(): void {
+    this.message = '';
+    if (!this.newCareSheet.appointmentId || !this.newCareSheet.medicalActId) {
+      this.message = 'Choisissez un rendez-vous et un acte médical.';
+      return;
+    }
+    this.api.createCareSheet(this.newCareSheet).subscribe({
+      next: (careSheet) => {
+        this.careSheets = [careSheet, ...this.careSheets];
+        this.message = `Feuille de soins #${careSheet.id} générée.`;
+        this.newCareSheet.notes = '';
+      },
+      error: () => {
+        this.message = 'Création de la feuille de soins impossible.';
+      },
+    });
+  }
+
+  invoiceCareSheet(careSheet: BackendCareSheet): void {
+    this.message = '';
+    this.api.generateInvoiceFromCareSheet(careSheet.id, this.newInvoice.paymentMethod).subscribe({
+      next: (invoice) => {
+        this.invoices = [this.toInvoiceRow(invoice), ...this.invoices];
+        this.careSheets = this.careSheets.map((item) =>
+          item.id === careSheet.id ? { ...item, status: 'INVOICED' } : item,
+        );
+        this.message = `Feuille de soins #${careSheet.id} facturée.`;
+      },
+      error: () => {
+        this.message = 'Facturation de la feuille de soins impossible.';
+      },
+    });
+  }
+
   appointmentLabel(appointment: BackendAppointment): string {
     const patient = `${appointment.patient?.firstName ?? appointment.patient?.user?.firstname ?? 'Patient'} ${appointment.patient?.lastName ?? appointment.patient?.user?.lastname ?? ''}`.trim();
     const date = new Date(appointment.dateTime);
@@ -121,6 +215,7 @@ export class Billing {
       backendId: invoice.id,
       id: `FAC-${invoice.id}`,
       patient: `${patient?.firstName ?? patient?.user?.firstname ?? 'Patient'} ${patient?.lastName ?? patient?.user?.lastname ?? ''}`.trim(),
+      email: patient?.user?.email ?? '',
       appointment: appointment?.appointmentType ?? 'Consultation',
       amount: invoice.totalAmount,
       method: invoice.paymentMethod ?? '-',
@@ -135,7 +230,32 @@ export class Billing {
         if (!this.newInvoice.appointmentId) {
           this.newInvoice.appointmentId = this.pendingAppointments[0]?.id ?? 0;
         }
+        if (!this.newCareSheet.appointmentId) {
+          this.newCareSheet.appointmentId = this.pendingAppointments[0]?.id ?? 0;
+        }
       },
     });
+  }
+
+  private loadCareSheetData(): void {
+    this.api.getCareSheets().subscribe({
+      next: (items) => {
+        this.careSheets = items;
+      },
+    });
+    this.api.getMedicalActs().subscribe({
+      next: (items) => {
+        this.medicalActs = items;
+        if (!this.newCareSheet.medicalActId) {
+          this.newCareSheet.medicalActId = items[0]?.id ?? 0;
+          this.newCareSheet.amount = items[0]?.baseTariff ?? 300;
+        }
+      },
+    });
+  }
+
+  updateCareSheetAmount(): void {
+    const act = this.medicalActs.find((item) => item.id === this.newCareSheet.medicalActId);
+    this.newCareSheet.amount = act?.baseTariff ?? this.newCareSheet.amount;
   }
 }

@@ -5,6 +5,7 @@ import { tap } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { AuthResponse, AuthUser } from './medisync.models';
+import { BiometricAuthService } from './biometric-auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
   constructor(
     private readonly http: HttpClient,
     private readonly router: Router,
+    private readonly biometricAuthService: BiometricAuthService,
   ) {}
 
   get token(): string | null {
@@ -26,15 +28,29 @@ export class AuthService {
     return !!this.token && !!this.currentUser();
   }
 
-  login(email: string, password: string) {
+  login(identifier: string, password: string, otpCode?: string) {
     return this.http
-      .post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, { email, password })
+      .post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, { identifier, password, otpCode })
       .pipe(tap((response: AuthResponse) => this.storeSession(response)));
   }
 
-  register(firstname: string, lastname: string, email: string, password: string, phone: string) {
+  register(
+    firstname: string,
+    lastname: string,
+    email: string,
+    password: string,
+    phone: string,
+    socialSecurityNumber?: string,
+  ) {
     return this.http
-      .post<AuthResponse>(`${environment.apiBaseUrl}/auth/register`, { firstname, lastname, email, password, phone })
+      .post<AuthResponse>(`${environment.apiBaseUrl}/auth/register`, {
+        firstname,
+        lastname,
+        email,
+        password,
+        phone,
+        socialSecurityNumber,
+      })
       .pipe(tap((response: AuthResponse) => this.storeSession(response)));
   }
 
@@ -42,6 +58,7 @@ export class AuthService {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
     this.currentUser.set(null);
+    this.biometricAuthService.clearUnlock();
 
     if (navigate) {
       void this.router.navigate(['/login']);
@@ -53,6 +70,7 @@ export class AuthService {
     localStorage.setItem(this.tokenKey, token);
     localStorage.setItem(this.userKey, JSON.stringify(user));
     this.currentUser.set(user);
+    this.biometricAuthService.markUnlocked();
   }
 
   private readStoredUser(): AuthUser | null {

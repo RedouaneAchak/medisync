@@ -8,10 +8,288 @@
   <article class="stat-card"><span>Medecins</span><strong>{{ doctors.length }}</strong><small>Comptes DOCTOR</small></article>
   <article class="stat-card"><span>Patients</span><strong>{{ patients.length }}</strong><small>Comptes PATIENT</small></article>
   <article class="stat-card"><span>Roles</span><strong>4</strong><small>PATIENT, DOCTOR, SECRETARY, ADMIN</small></article>
-  <article class="stat-card"><span>RDV</span><strong>{{ appointments.length }}</strong><small>Planning backend</small></article>
+  <article class="stat-card"><span>RDV</span><strong>{{ dashboard?.totalAppointments ?? appointments.length }}</strong><small>Planning backend</small></article>
 </section>
 
 <section class="content-grid">
+  <article class="section-panel wide">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Securite</span>
+        <h2>Double authentification administrateur</h2>
+      </div>
+    </div>
+    @if (twoFactorStatus?.enabled) {
+      <div class="summary-box">
+        <strong>2FA active</strong>
+        <span>Votre compte admin exige désormais un code OTP à chaque connexion.</span>
+      </div>
+    } @else {
+      <div class="summary-box">
+        <strong>2FA à activer</strong>
+        <span>Ajoutez la clé secrète ci-dessous dans Google Authenticator, Microsoft Authenticator ou Authy.</span>
+      </div>
+      <div class="table-list">
+        <div class="list-row">
+          <strong>Clé secrète</strong>
+          <span>{{ twoFactorStatus?.secret || 'Chargement...' }}</span>
+        </div>
+        <div class="list-row">
+          <strong>URI OTP</strong>
+          <span>{{ twoFactorStatus?.provisioningUri || 'Génération...' }}</span>
+        </div>
+      </div>
+      <form class="form-panel" (ngSubmit)="enableTwoFactor()">
+        <label>
+          Code OTP actuel
+          <input [(ngModel)]="twoFactorCode" name="twoFactorCode" placeholder="123456" />
+        </label>
+        <button class="btn primary" type="submit">Activer la 2FA</button>
+      </form>
+    }
+  </article>
+  <aside class="section-panel">
+    <h2>Rappel sécurité</h2>
+    <p class="muted">Après activation, la connexion admin demandera mot de passe puis code à 6 chiffres.</p>
+  </aside>
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Clinique</span>
+        <h2>Informations établissement</h2>
+      </div>
+    </div>
+    <form class="form-panel" (ngSubmit)="saveClinicProfile()">
+      <label>
+        Nom
+        <input [(ngModel)]="clinicProfile.name" name="clinicName" required />
+      </label>
+      <label>
+        Adresse
+        <input [(ngModel)]="clinicProfile.address" name="clinicAddress" required />
+      </label>
+      <label>
+        Ville
+        <input [(ngModel)]="clinicProfile.city" name="clinicCity" required />
+      </label>
+      <label>
+        Telephone
+        <input [(ngModel)]="clinicProfile.phone" name="clinicPhone" />
+      </label>
+      <label>
+        Email
+        <input [(ngModel)]="clinicProfile.email" name="clinicEmail" type="email" />
+      </label>
+      <label>
+        Latitude
+        <input [(ngModel)]="clinicProfile.latitude" name="clinicLatitude" type="number" step="0.000001" />
+      </label>
+      <label>
+        Longitude
+        <input [(ngModel)]="clinicProfile.longitude" name="clinicLongitude" type="number" step="0.000001" />
+      </label>
+      <label>
+        Horaires
+        <textarea [(ngModel)]="clinicProfile.openingHours" name="openingHours" rows="3"></textarea>
+      </label>
+      <label>
+        Specialites
+        <textarea [(ngModel)]="clinicProfile.specialtiesOffered" name="specialtiesOffered" rows="3"></textarea>
+      </label>
+      <button class="btn primary" type="submit">Enregistrer la clinique</button>
+    </form>
+  </article>
+  <aside class="section-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Dashboard</span>
+        <h2>KPIs</h2>
+      </div>
+    </div>
+    <form class="form-panel" (ngSubmit)="refreshAdminDashboard()">
+      <label>
+        Du
+        <input [(ngModel)]="dashboardRange.from" name="dashboardFrom" type="datetime-local" />
+      </label>
+      <label>
+        Au
+        <input [(ngModel)]="dashboardRange.to" name="dashboardTo" type="datetime-local" />
+      </label>
+      <label>
+        Rapport financier
+        <select [(ngModel)]="financialGranularity" name="financialGranularity" (ngModelChange)="loadFinancialReport()">
+          <option value="DAY">Jour</option>
+          <option value="MONTH">Mois</option>
+          <option value="YEAR">Année</option>
+        </select>
+      </label>
+      <button class="btn primary" type="submit">Actualiser</button>
+      <button class="btn secondary" type="button" (click)="exportDashboardCsv()">Exporter CSV</button>
+    </form>
+    @if (dashboard; as metrics) {
+      <div class="table-list">
+        <div class="list-row"><strong>Revenus</strong><span>{{ metrics.totalRevenue }} MAD</span></div>
+        <div class="list-row"><strong>Confirmes</strong><span>{{ metrics.confirmedAppointments }}</span></div>
+        <div class="list-row"><strong>Annules</strong><span>{{ metrics.cancelledAppointments }}</span></div>
+        <div class="list-row"><strong>No-show</strong><span>{{ metrics.noShowRate | number:'1.0-2' }}%</span></div>
+        <div class="list-row"><strong>Impayes</strong><span>{{ metrics.unpaidInvoices }}</span></div>
+      </div>
+    } @else {
+      <p class="muted">Le dashboard charge les indicateurs backend sur la periode choisie.</p>
+    }
+    <div class="table-list">
+      @for (point of financialReport; track point.label) {
+        <div class="list-row">
+          <strong>{{ point.label }}</strong>
+          <span>{{ point.revenue }} MAD</span>
+          <span>{{ point.paidInvoiceCount }}/{{ point.invoiceCount }} encaissées</span>
+        </div>
+      } @empty {
+        <p class="muted">Aucun point financier sur cette période.</p>
+      }
+    </div>
+  </aside>
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+    <h2>Activite par medecin</h2>
+    <div class="table-list">
+      @for (metric of doctorMetrics; track metric.name) {
+        <div class="list-row">
+          <strong>{{ metric.name }}</strong>
+          <span>{{ metric.count }} consultation(s)</span>
+        </div>
+      } @empty {
+        <p class="muted">Aucune statistique par medecin sur cette periode.</p>
+      }
+    </div>
+  </article>
+  <aside class="section-panel">
+    <h2>Occupation des salles</h2>
+    <div class="table-list">
+      @for (metric of roomMetrics; track metric.name) {
+        <div class="list-row">
+          <strong>{{ metric.name }}</strong>
+          <span>{{ metric.count }} RDV</span>
+        </div>
+      } @empty {
+        <p class="muted">Aucune statistique salle sur cette periode.</p>
+      }
+    </div>
+  </aside>
+</section>
+
+<section class="section-panel">
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">Conformite</span>
+      <h2>Journal d audit</h2>
+    </div>
+  </div>
+  <div class="table-list">
+    @for (log of auditLogs; track log.id) {
+      <div class="list-row">
+        <div>
+          <strong>{{ log.action }}</strong>
+          <span>{{ log.actor }} · {{ log.target }}</span>
+        </div>
+        <div class="row-meta">
+          <span>{{ log.timestamp }}</span>
+          <span>IP {{ log.ipAddress }}</span>
+        </div>
+      </div>
+    } @empty {
+      <p class="muted">Aucune entree d audit disponible pour le moment.</p>
+    }
+  </div>
+</section>
+
+<section class="section-panel">
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">Experience patient</span>
+      <h2>Avis et reclamations</h2>
+    </div>
+  </div>
+  <div class="table-list">
+    @for (item of feedbackRows; track item.id) {
+      <div class="list-row">
+        <div>
+          <strong>{{ item.title }}</strong>
+          <span>{{ item.doctorName }} · {{ item.createdAt }} · {{ item.type }}{{ item.rating ? ' · ' + item.rating + '/5' : '' }}</span>
+          <p class="muted">{{ item.message }}</p>
+        </div>
+        <div class="inline-actions">
+          <span class="badge" [class]="item.type === 'REVIEW' ? 'tone-green' : 'tone-yellow'">{{ item.status }}</span>
+          <button type="button" (click)="updateFeedbackStatus(item.id, 'IN_REVIEW')">En cours</button>
+          <button type="button" (click)="updateFeedbackStatus(item.id, 'RESOLVED')">Résolu</button>
+        </div>
+      </div>
+    } @empty {
+      <p class="muted">Aucun avis ni aucune réclamation remontée pour le moment.</p>
+    }
+  </div>
+</section>
+
+<section class="content-grid">
+  <article class="section-panel wide">
+    <h2>Actes médicaux et tarification</h2>
+    <form class="form-panel" (ngSubmit)="saveMedicalAct()">
+      <label>
+        Code
+        <input [(ngModel)]="medicalActForm.code" name="medicalActCode" placeholder="CONS-30" required />
+      </label>
+      <label>
+        Libellé
+        <input [(ngModel)]="medicalActForm.label" name="medicalActLabel" required />
+      </label>
+      <label>
+        Catégorie
+        <input [(ngModel)]="medicalActForm.category" name="medicalActCategory" />
+      </label>
+      <label>
+        Secteur
+        <input [(ngModel)]="medicalActForm.sector" name="medicalActSector" />
+      </label>
+      <label>
+        Durée
+        <select [(ngModel)]="medicalActForm.durationMinutes" name="medicalActDuration">
+          <option [ngValue]="15">15 min</option>
+          <option [ngValue]="30">30 min</option>
+          <option [ngValue]="60">60 min</option>
+        </select>
+      </label>
+      <label>
+        Tarif
+        <input [(ngModel)]="medicalActForm.baseTariff" name="medicalActTariff" type="number" step="0.01" />
+      </label>
+      <label>
+        Description
+        <textarea [(ngModel)]="medicalActForm.description" name="medicalActDescription" rows="3"></textarea>
+      </label>
+      <button class="btn primary" type="submit">{{ editingMedicalActId ? 'Mettre à jour' : 'Créer l’acte' }}</button>
+    </form>
+    <div class="table-list">
+      @for (act of medicalActs; track act.id) {
+        <div class="list-row">
+          <div>
+            <strong>{{ act.code }} · {{ act.label }}</strong>
+            <span>{{ act.category }} · {{ act.durationMinutes }} min · {{ act.baseTariff }} MAD</span>
+          </div>
+          <div class="inline-actions">
+            <button type="button" (click)="editMedicalAct(act)">Modifier</button>
+            <button type="button" (click)="deleteMedicalAct(act.id)">Supprimer</button>
+          </div>
+        </div>
+      } @empty {
+        <p class="muted">Aucun acte médical paramétré.</p>
+      }
+    </div>
+  </article>
   <article class="section-panel wide">
     @if (error) {
       <p class="muted">{{ error }}</p>
@@ -45,6 +323,23 @@
           }
         </select>
       </label>
+      @if (permissionCatalog.availablePermissions.length) {
+        <div>
+          <strong>Permissions additionnelles</strong>
+          <div class="table-list">
+            @for (permission of permissionCatalog.availablePermissions; track permission) {
+              <label class="list-row">
+                <span>{{ permission }}</span>
+                <input
+                  type="checkbox"
+                  [checked]="hasPermission(newUser.extraPermissions, permission)"
+                  (change)="togglePermission(newUser.extraPermissions, permission, $any($event.target).checked)" />
+              </label>
+            }
+          </div>
+          <p class="muted">Le rôle {{ newUser.role }} apporte déjà par défaut: {{ roleDefaults(newUser.role).join(', ') || 'aucune permission métier supplémentaire' }}</p>
+        </div>
+      }
       <button class="btn primary" type="submit">Creer le compte</button>
     </form>
     <div class="table-list">
@@ -53,10 +348,35 @@
           <div>
             <strong>{{ user.firstname }} {{ user.lastname }}</strong>
             <span>{{ user.email }}</span>
+            @if (user.effectivePermissions?.length) {
+              <p class="muted">Permissions effectives: {{ user.effectivePermissions?.join(', ') }}</p>
+            }
           </div>
           <span class="badge tone-blue">{{ user.role }}</span>
+          <button type="button" (click)="startPermissionsEdit(user)">Éditer droits</button>
           <button type="button" (click)="deleteUser(user.id)">Supprimer</button>
         </div>
+        @if (editingUserPermissionsId === user.id) {
+          <form class="form-panel" (ngSubmit)="saveUserPermissions(user)">
+            <strong>Permissions supplémentaires pour {{ user.email }}</strong>
+            <div class="table-list">
+              @for (permission of permissionCatalog.availablePermissions; track permission) {
+                <label class="list-row">
+                  <span>{{ permission }}</span>
+                  <input
+                    type="checkbox"
+                    [checked]="hasPermission(editingUserPermissions, permission)"
+                    (change)="togglePermission(editingUserPermissions, permission, $any($event.target).checked)" />
+                </label>
+              }
+            </div>
+            <p class="muted">Permissions par défaut du rôle {{ user.role }}: {{ roleDefaults(user.role).join(', ') || 'aucune permission métier supplémentaire' }}</p>
+            <div class="inline-actions">
+              <button class="btn primary" type="submit">Enregistrer</button>
+              <button class="btn secondary" type="button" (click)="cancelPermissionsEdit()">Annuler</button>
+            </div>
+          </form>
+        }
       }
     </div>
   </article>

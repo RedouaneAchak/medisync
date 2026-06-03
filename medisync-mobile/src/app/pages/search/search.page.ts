@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
+import { forkJoin } from 'rxjs';
 
 import { TabBarComponent } from '../../shared/tab-bar/tab-bar.component';
 import { MedisyncApiService } from '../../services/medisync-api.service';
-import { BackendDoctor } from '../../services/medisync.models';
+import { BackendDoctor, BackendDoctorFeedbackSummary } from '../../services/medisync.models';
 
 interface SearchDoctor {
   id: number;
@@ -35,6 +36,7 @@ export class SearchPage {
   filteredDoctors: SearchDoctor[] = [];
   loading = false;
   error = '';
+  private feedbackMap = new Map<number, BackendDoctorFeedbackSummary>();
 
   constructor(
     private readonly router: Router,
@@ -68,9 +70,13 @@ export class SearchPage {
     this.loading = true;
     this.error = '';
 
-    this.api.getDoctors().subscribe({
-      next: (doctors: BackendDoctor[]) => {
+    forkJoin({
+      doctors: this.api.getDoctors(),
+      summaries: this.api.getDoctorFeedbackSummaries(),
+    }).subscribe({
+      next: ({ doctors, summaries }: { doctors: BackendDoctor[]; summaries: BackendDoctorFeedbackSummary[] }) => {
         this.loading = false;
+        this.feedbackMap = new Map(summaries.map((item) => [item.doctorId, item]));
         this.allDoctors = doctors.map((doctor, index) => this.toSearchDoctor(doctor, index));
         this.filters = ['Tous', ...new Set(this.allDoctors.map((doctor) => doctor.specialty))];
         this.filterDoctors();
@@ -99,7 +105,7 @@ export class SearchPage {
       id: doctor.id,
       name: `Dr. ${firstName} ${lastName}`.trim(),
       specialty: doctor.specialty ?? 'Médecine générale',
-      rating: 4.8,
+      rating: Number((this.feedbackMap.get(doctor.id)?.averageRating ?? 4.8).toFixed(1)),
       location: 'MediSync',
       available: true,
       initials: `${firstName[0] ?? 'D'}${lastName[0] ?? 'R'}`.toUpperCase(),

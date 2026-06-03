@@ -7,9 +7,16 @@ export interface BackendUser {
   lastname: string;
   email: string;
   role: string;
+  extraPermissions?: string[];
+  effectivePermissions?: string[];
 }
 
 export type BackendRole = 'PATIENT' | 'DOCTOR' | 'SECRETARY' | 'ADMIN';
+
+export interface BackendPermissionCatalog {
+  availablePermissions: string[];
+  roleDefaults: Record<string, string[]>;
+}
 
 export interface BackendDoctor {
   id: number;
@@ -18,6 +25,10 @@ export interface BackendDoctor {
   bio?: string;
   spokenLanguages?: string;
   standardConsultationRate?: number;
+  availabilityStart?: string;
+  availabilityEnd?: string;
+  workingDays?: string;
+  defaultSlotMinutes?: number;
 }
 
 export interface BackendPatient {
@@ -29,7 +40,21 @@ export interface BackendPatient {
   socialSecurityNumber?: string;
   category?: string;
   companyName?: string;
+  allergies?: string;
+  medicalAntecedents?: string;
+  currentTreatments?: string;
   guardian?: Pick<BackendPatient, 'id' | 'firstName' | 'lastName' | 'user'>;
+}
+
+export interface BackendMedicalAct {
+  id: number;
+  code: string;
+  label: string;
+  category?: string;
+  sector?: string;
+  durationMinutes?: number;
+  baseTariff?: number;
+  description?: string;
 }
 
 export interface BackendRoom {
@@ -64,10 +89,126 @@ export interface BackendConsultation {
   id: string;
   patientId?: number;
   doctorId?: number;
+  templateName?: string;
+  consultationReason?: string;
+  diagnosis?: string;
   observation?: string;
+  followUpPlan?: string;
+  vitals?: Record<string, string>;
   prescriptions?: string[];
+  prescriptionItems?: BackendPrescriptionItem[];
   files?: Record<string, unknown>[];
   createdAt?: string;
+}
+
+export interface BackendPrescriptionItem {
+  medicationName: string;
+  dosage?: string;
+  frequency?: string;
+  durationDays?: number;
+  instructions?: string;
+}
+
+export interface BackendMedicationSuggestion {
+  name: string;
+  form: string;
+  commonDosage: string;
+  frequencyHint: string;
+}
+
+export interface BackendCareSheet {
+  id: number;
+  appointment?: BackendAppointment;
+  medicalAct?: BackendMedicalAct;
+  amount: number;
+  status?: string;
+  notes?: string;
+  createdAt?: string;
+}
+
+export interface BackendNotification {
+  title: string;
+  detail: string;
+  tone: string;
+  category: string;
+  createdAt?: string;
+}
+
+export interface BackendClinicProfile {
+  id?: number;
+  name: string;
+  address: string;
+  city: string;
+  phone: string;
+  email: string;
+  latitude?: number;
+  longitude?: number;
+  openingHours?: string;
+  specialtiesOffered?: string;
+}
+
+export interface BackendAdminDashboard {
+  totalAppointments: number;
+  confirmedAppointments: number;
+  cancelledAppointments: number;
+  noShowRate: number;
+  totalRevenue: number;
+  unpaidInvoices: number;
+  appointmentsPerDoctor: Record<string, number>;
+  roomOccupancy: Record<string, number>;
+}
+
+export interface BackendFinancialReportPoint {
+  label: string;
+  revenue: number;
+  invoiceCount: number;
+  paidInvoiceCount: number;
+}
+
+export interface BackendAdminTwoFactorStatus {
+  enabled: boolean;
+  setupRequired: boolean;
+  secret?: string | null;
+  provisioningUri?: string | null;
+  enabledAt?: string | null;
+}
+
+export interface BackendAuditLog {
+  id: string;
+  userId?: number;
+  action: string;
+  targetEntity?: string;
+  timestamp?: string;
+  ipAddress?: string;
+}
+
+export interface BackendDoctorUnavailability {
+  id: number;
+  startDateTime: string;
+  endDateTime: string;
+  reason: string;
+  type: string;
+}
+
+export interface BackendPatientFeedback {
+  id: string;
+  patientId: number;
+  doctorId?: number;
+  doctorName?: string;
+  appointmentId?: number;
+  type: 'REVIEW' | 'COMPLAINT';
+  rating?: number;
+  title: string;
+  message: string;
+  status: 'OPEN' | 'IN_REVIEW' | 'RESOLVED';
+  createdAt?: string;
+}
+
+export interface BackendDoctorFeedbackSummary {
+  doctorId: number;
+  averageRating: number;
+  reviewCount: number;
+  complaintCount: number;
 }
 
 
@@ -81,6 +222,14 @@ export class MedisyncApiService {
 
   getPatientProfile(patientId: number) {
     return this.http.get<BackendPatient>(`/api/patient/${patientId}`);
+  }
+
+  getDependents(patientId: number) {
+    return this.http.get<BackendPatient[]>(`/api/patient/${patientId}/dependents`);
+  }
+
+  getPatientNotifications(patientId: number) {
+    return this.http.get<BackendNotification[]>(`/api/patient/${patientId}/notifications`);
   }
 
   getDoctorProfile(doctorId: number) {
@@ -112,6 +261,14 @@ export class MedisyncApiService {
   getAvailableSlots(doctorId: number, date: string, duration = 30) {
     const params = new HttpParams().set('date', date).set('duration', duration);
     return this.http.get<string[]>(`/api/doctor/${doctorId}/available-slots`, { params });
+  }
+
+  getMedicalActs(q?: string) {
+    let params = new HttpParams();
+    if (q?.trim()) {
+      params = params.set('q', q.trim());
+    }
+    return this.http.get<BackendMedicalAct[]>('/api/medical-acts', { params });
   }
 
   getRooms() {
@@ -175,6 +332,14 @@ export class MedisyncApiService {
     return this.http.get<BackendInvoice[]>('/api/invoices');
   }
 
+  getCareSheets() {
+    return this.http.get<BackendCareSheet[]>('/api/secretary/care-sheets');
+  }
+
+  createCareSheet(body: { appointmentId: number; medicalActId: number; amount?: number; notes?: string }) {
+    return this.http.post<BackendCareSheet>('/api/secretary/care-sheets', body);
+  }
+
   getPatientInvoices(patientId: number) {
     return this.http.get<BackendInvoice[]>(`/api/invoices/patient/${patientId}`);
   }
@@ -187,8 +352,46 @@ export class MedisyncApiService {
     return this.http.post<BackendInvoice>('/api/secretary/invoices', body);
   }
 
+  generateInvoiceFromCareSheet(careSheetId: number, paymentMethod: string) {
+    return this.http.post<BackendInvoice>(`/api/secretary/care-sheets/${careSheetId}/invoice`, { paymentMethod });
+  }
+
+  sendInvoiceEmail(id: number) {
+    return this.http.post<BackendInvoice>(`/api/invoices/${id}/send-email`, {});
+  }
+
   getRoomsForAdmin() {
     return this.http.get<BackendRoom[]>('/api/admin/rooms');
+  }
+
+  getAdminDashboard(from: string, to: string) {
+    const params = new HttpParams().set('from', from).set('to', to);
+    return this.http.get<BackendAdminDashboard>('/api/admin/dashboard', { params });
+  }
+
+  getInvoiceReportSummary(from: string, to: string, granularity: 'DAY' | 'MONTH' | 'YEAR') {
+    const params = new HttpParams().set('from', from).set('to', to).set('granularity', granularity);
+    return this.http.get<BackendFinancialReportPoint[]>('/api/invoices/report/summary', { params });
+  }
+
+  getAuditLogs() {
+    return this.http.get<BackendAuditLog[]>('/api/admin/audit-logs');
+  }
+
+  getAdminTwoFactorStatus() {
+    return this.http.get<BackendAdminTwoFactorStatus>('/api/admin/two-factor');
+  }
+
+  enableAdminTwoFactor(otpCode: string) {
+    return this.http.post<BackendAdminTwoFactorStatus>('/api/admin/two-factor/enable', { otpCode });
+  }
+
+  getClinicProfile() {
+    return this.http.get<BackendClinicProfile>('/api/clinic-profile');
+  }
+
+  updateClinicProfile(body: BackendClinicProfile) {
+    return this.http.put<BackendClinicProfile>('/api/admin/clinic-profile', body);
   }
 
   createRoom(body: { roomNumber: string; equipmentType: string }) {
@@ -199,8 +402,32 @@ export class MedisyncApiService {
     return this.http.delete<void>(`/api/admin/rooms/${id}`);
   }
 
+  getAdminMedicalActs(q?: string) {
+    let params = new HttpParams();
+    if (q?.trim()) {
+      params = params.set('q', q.trim());
+    }
+    return this.http.get<BackendMedicalAct[]>('/api/admin/medical-acts', { params });
+  }
+
+  createAdminMedicalAct(body: Omit<BackendMedicalAct, 'id'>) {
+    return this.http.post<BackendMedicalAct>('/api/admin/medical-acts', body);
+  }
+
+  updateAdminMedicalAct(id: number, body: Omit<BackendMedicalAct, 'id'>) {
+    return this.http.put<BackendMedicalAct>(`/api/admin/medical-acts/${id}`, body);
+  }
+
+  deleteAdminMedicalAct(id: number) {
+    return this.http.delete<void>(`/api/admin/medical-acts/${id}`);
+  }
+
   getAdminUsers() {
     return this.http.get<BackendUser[]>('/api/admin/users');
+  }
+
+  getAdminPermissionCatalog() {
+    return this.http.get<BackendPermissionCatalog>('/api/admin/permissions/catalog');
   }
 
   createAdminUser(body: {
@@ -209,8 +436,13 @@ export class MedisyncApiService {
     email: string;
     password: string;
     role: BackendRole;
+    extraPermissions?: string[];
   }) {
     return this.http.post<BackendUser>('/api/admin/users', body);
+  }
+
+  updateAdminUserPermissions(id: number, extraPermissions: string[]) {
+    return this.http.put<BackendUser>(`/api/admin/users/${id}/permissions`, { extraPermissions });
   }
 
   deleteAdminUser(id: number) {
@@ -229,12 +461,88 @@ export class MedisyncApiService {
     return this.http.get<BackendConsultation[]>(`/api/consultations/doctor/${doctorId}`);
   }
 
-  createConsultation(body: { patientId: number; doctorId: number; observation: string; prescriptions: string[] }) {
-    return this.http.post<BackendConsultation>('/api/consultations', body);
+  getDoctorUnavailabilities(doctorId: number) {
+    return this.http.get<BackendDoctorUnavailability[]>(`/api/doctor/${doctorId}/unavailabilities`);
   }
 
-  updateConsultation(id: string, body: { observation: string; prescriptions: string[] }) {
+  createDoctorUnavailability(
+    doctorId: number,
+    body: { startDateTime: string; endDateTime: string; reason: string; type: string },
+  ) {
+    return this.http.post<BackendDoctorUnavailability>(`/api/doctor/${doctorId}/unavailabilities`, body);
+  }
+
+  deleteDoctorUnavailability(doctorId: number, unavailabilityId: number) {
+    return this.http.delete<void>(`/api/doctor/${doctorId}/unavailabilities/${unavailabilityId}`);
+  }
+
+  getDoctorFeedbackSummaries() {
+    return this.http.get<BackendDoctorFeedbackSummary[]>('/api/feedback/doctor-summaries');
+  }
+
+  getPatientFeedback(patientId: number) {
+    return this.http.get<BackendPatientFeedback[]>(`/api/feedback/patient/${patientId}`);
+  }
+
+  createPatientFeedback(
+    patientId: number,
+    body: {
+      doctorId?: number;
+      appointmentId?: number;
+      type: 'REVIEW' | 'COMPLAINT';
+      rating?: number;
+      title: string;
+      message: string;
+    },
+  ) {
+    return this.http.post<BackendPatientFeedback>(`/api/feedback/patient/${patientId}`, body);
+  }
+
+  getAdminFeedback() {
+    return this.http.get<BackendPatientFeedback[]>('/api/feedback/admin');
+  }
+
+  updateAdminFeedbackStatus(id: string, status: 'OPEN' | 'IN_REVIEW' | 'RESOLVED') {
+    return this.http.patch<BackendPatientFeedback>(`/api/feedback/admin/${id}/status`, { status });
+  }
+
+  updateConsultation(
+    id: string,
+    body: {
+      templateName?: string;
+      consultationReason?: string;
+      diagnosis?: string;
+      observation?: string;
+      followUpPlan?: string;
+      vitals?: Record<string, string>;
+      prescriptions?: string[];
+      prescriptionItems?: BackendPrescriptionItem[];
+    },
+  ) {
     return this.http.put<BackendConsultation>(`/api/consultations/${id}`, body);
+  }
+
+  searchMedications(q?: string) {
+    let params = new HttpParams();
+    if (q?.trim()) {
+      params = params.set('q', q.trim());
+    }
+    return this.http.get<BackendMedicationSuggestion[]>('/api/consultations/medications/search', { params });
+  }
+
+  createConsultation(body: {
+    patientId: number;
+    doctorId: number;
+    templateName?: string;
+    consultationReason?: string;
+    diagnosis?: string;
+    observation: string;
+    followUpPlan?: string;
+    vitals?: Record<string, string>;
+    prescriptions?: string[];
+    prescriptionItems?: BackendPrescriptionItem[];
+  }) {
+    return this.http.post<BackendConsultation>('/api/consultations', body);
   }
 
   addConsultationFile(id: string, body: Record<string, unknown>) {

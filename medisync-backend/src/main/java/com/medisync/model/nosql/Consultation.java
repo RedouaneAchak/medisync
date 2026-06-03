@@ -14,8 +14,14 @@ public class Consultation {
     private String id;
     private Long patientId; 
     private Long doctorId;
+    private String templateName;
+    private String consultationReason;
+    private String diagnosis;
     private String observation;
+    private String followUpPlan;
+    private Map<String, String> vitals;
     private List<String> prescriptions;
+    private List<PrescriptionItem> prescriptionItems;
     private List<Map<String, Object>> files;
     
     // --- ADD THIS LINE ---

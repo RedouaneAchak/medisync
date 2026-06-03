@@ -2,6 +2,7 @@ package com.medisync.service;
 
 import com.medisync.model.nosql.AuditLog;
 import com.medisync.model.nosql.Consultation;
+import com.medisync.model.nosql.PrescriptionItem;
 import com.medisync.repository.nosql.AuditLogRepository;
 import com.medisync.repository.nosql.ConsultationRepository;
 import com.medisync.repository.sql.UserRepository;
@@ -24,12 +25,25 @@ public class ConsultationService {
     // ── Création d'une consultation ───────────────────────────────────────────
 
     public Consultation create(Long patientId, Long doctorId,
-                               String observation, List<String> prescriptions) {
+                               String templateName,
+                               String consultationReason,
+                               String diagnosis,
+                               String observation,
+                               String followUpPlan,
+                               Map<String, String> vitals,
+                               List<String> prescriptions,
+                               List<PrescriptionItem> prescriptionItems) {
         Consultation c = new Consultation();
         c.setPatientId(patientId);
         c.setDoctorId(doctorId);
+        c.setTemplateName(templateName);
+        c.setConsultationReason(consultationReason);
+        c.setDiagnosis(diagnosis);
         c.setObservation(observation);
-        c.setPrescriptions(prescriptions != null ? prescriptions : new ArrayList<>());
+        c.setFollowUpPlan(followUpPlan);
+        c.setVitals(vitals);
+        c.setPrescriptionItems(normalizePrescriptionItems(prescriptionItems));
+        c.setPrescriptions(buildPrescriptionLines(prescriptions, c.getPrescriptionItems()));
         c.setFiles(new ArrayList<>());
         
         // --- THE FIX: Stamp the exact creation time! ---
@@ -42,13 +56,28 @@ public class ConsultationService {
 
     // ── Mise à jour (ajout d'observations / prescriptions) ────────────────────
 
-    public Consultation update(String consultationId, String observation,
-                               List<String> prescriptions) {
+    public Consultation update(String consultationId,
+                               String templateName,
+                               String consultationReason,
+                               String diagnosis,
+                               String observation,
+                               String followUpPlan,
+                               Map<String, String> vitals,
+                               List<String> prescriptions,
+                               List<PrescriptionItem> prescriptionItems) {
         Consultation c = consultationRepository.findById(consultationId)
                 .orElseThrow(() -> new RuntimeException("Consultation introuvable : " + consultationId));
 
-        if (observation != null)    c.setObservation(observation);
-        if (prescriptions != null)  c.setPrescriptions(prescriptions);
+        if (templateName != null) c.setTemplateName(templateName);
+        if (consultationReason != null) c.setConsultationReason(consultationReason);
+        if (diagnosis != null) c.setDiagnosis(diagnosis);
+        if (observation != null) c.setObservation(observation);
+        if (followUpPlan != null) c.setFollowUpPlan(followUpPlan);
+        if (vitals != null) c.setVitals(vitals);
+        if (prescriptionItems != null) c.setPrescriptionItems(normalizePrescriptionItems(prescriptionItems));
+        if (prescriptions != null || prescriptionItems != null) {
+            c.setPrescriptions(buildPrescriptionLines(prescriptions, c.getPrescriptionItems()));
+        }
 
         return consultationRepository.save(c);
     }
@@ -91,5 +120,34 @@ public class ConsultationService {
         log.setTargetEntity(target);
         log.setTimestamp(LocalDateTime.now());
         auditLogRepository.save(log);
+    }
+
+    private List<PrescriptionItem> normalizePrescriptionItems(List<PrescriptionItem> items) {
+        if (items == null) {
+            return new ArrayList<>();
+        }
+        return items.stream()
+                .filter(item -> item != null && item.getMedicationName() != null && !item.getMedicationName().isBlank())
+                .map(item -> {
+                    PrescriptionItem normalized = new PrescriptionItem();
+                    normalized.setMedicationName(item.getMedicationName().trim());
+                    normalized.setDosage(item.getDosage());
+                    normalized.setFrequency(item.getFrequency());
+                    normalized.setDurationDays(item.getDurationDays());
+                    normalized.setInstructions(item.getInstructions());
+                    return normalized;
+                })
+                .toList();
+    }
+
+    private List<String> buildPrescriptionLines(List<String> prescriptions, List<PrescriptionItem> items) {
+        if (items != null && !items.isEmpty()) {
+            return items.stream()
+                    .map(item -> item.getMedicationName()
+                            + (item.getDosage() == null || item.getDosage().isBlank() ? "" : " - " + item.getDosage())
+                            + (item.getFrequency() == null || item.getFrequency().isBlank() ? "" : " - " + item.getFrequency()))
+                    .toList();
+        }
+        return prescriptions != null ? prescriptions : new ArrayList<>();
     }
 }

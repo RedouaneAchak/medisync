@@ -2,15 +2,26 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { BackendAppointment, BackendConsultation, MedisyncApiService } from '../../services/medisync-api.service';
+import {
+  BackendAppointment,
+  BackendConsultation,
+  BackendMedicationSuggestion,
+  BackendPrescriptionItem,
+  MedisyncApiService,
+} from '../../services/medisync-api.service';
 
 interface ConsultationRow {
   id: string;
   date: string;
   doctor: string;
   motif: string;
+  templateName: string;
+  diagnosis: string;
   notes: string;
+  followUpPlan: string;
+  vitals: Record<string, string>;
   prescriptions: string[];
+  prescriptionItems: BackendPrescriptionItem[];
   files: Record<string, unknown>[];
 }
 
@@ -31,13 +42,30 @@ export class MedicalRecord implements OnInit {
   editingId: string | null = null;
   doctorPatients: DoctorPatientOption[] = [];
   selectedDoctorPatientId = 0;
+  medicationSuggestions: BackendMedicationSuggestion[] = [];
+  prescriptionItems: BackendPrescriptionItem[] = [];
   
   // Forms
   consultationForm = {
     patientId: 0,
     doctorId: 0,
+    templateName: 'CONSULTATION_GENERALE',
+    consultationReason: '',
+    diagnosis: '',
     observation: '',
+    followUpPlan: '',
+    bloodPressure: '',
+    heartRate: '',
+    temperature: '',
+    weight: '',
     prescriptionsText: '',
+  };
+  prescriptionDraft = {
+    medicationName: '',
+    dosage: '',
+    frequency: '',
+    durationDays: 7,
+    instructions: '',
   };
   
   // Updated Document Form for physical files
@@ -118,6 +146,15 @@ export class MedicalRecord implements OnInit {
     return role === 'DOCTOR' || role === 'ADMIN';
   }
 
+  get consultationTemplates(): Array<{ value: string; label: string }> {
+    return [
+      { value: 'CONSULTATION_GENERALE', label: 'Consultation générale' },
+      { value: 'SUIVI_CHRONIQUE', label: 'Suivi chronique' },
+      { value: 'PEDIATRIE', label: 'Pédiatrie' },
+      { value: 'URGENCE', label: 'Urgence' },
+    ];
+  }
+
   saveConsultation(): void {
     this.formError = '';
     this.formSuccess = '';
@@ -125,8 +162,14 @@ export class MedicalRecord implements OnInit {
     const payload = {
       patientId: this.consultationForm.patientId,
       doctorId: this.consultationForm.doctorId,
+      templateName: this.consultationForm.templateName,
+      consultationReason: this.consultationForm.consultationReason,
+      diagnosis: this.consultationForm.diagnosis,
       observation: this.consultationForm.observation,
+      followUpPlan: this.consultationForm.followUpPlan,
+      vitals: this.vitals,
       prescriptions: this.prescriptions,
+      prescriptionItems: this.prescriptionItems,
     };
 
     if (!payload.patientId || !payload.doctorId) {
@@ -137,9 +180,15 @@ export class MedicalRecord implements OnInit {
     this.savingConsultation = true;
 
     const request = this.editingId
-      ? this.api.updateConsultation(this.editingId, {
+        ? this.api.updateConsultation(this.editingId, {
+          templateName: payload.templateName,
+          consultationReason: payload.consultationReason,
+          diagnosis: payload.diagnosis,
           observation: payload.observation,
+          followUpPlan: payload.followUpPlan,
+          vitals: payload.vitals,
           prescriptions: payload.prescriptions,
+          prescriptionItems: payload.prescriptionItems,
         })
       : this.api.createConsultation(payload);
 
@@ -157,8 +206,25 @@ export class MedicalRecord implements OnInit {
         
         this.formSuccess = this.editingId ? 'Consultation mise à jour.' : 'Consultation créée avec succès.';
         this.editingId = null;
+        this.consultationForm.templateName = 'CONSULTATION_GENERALE';
+        this.consultationForm.consultationReason = '';
+        this.consultationForm.diagnosis = '';
         this.consultationForm.observation = '';
+        this.consultationForm.followUpPlan = '';
+        this.consultationForm.bloodPressure = '';
+        this.consultationForm.heartRate = '';
+        this.consultationForm.temperature = '';
+        this.consultationForm.weight = '';
         this.consultationForm.prescriptionsText = '';
+        this.prescriptionDraft = {
+          medicationName: '',
+          dosage: '',
+          frequency: '',
+          durationDays: 7,
+          instructions: '',
+        };
+        this.prescriptionItems = [];
+        this.medicationSuggestions = [];
         this.refreshDocuments();
       },
       error: (err: any) => {
@@ -175,9 +241,71 @@ export class MedicalRecord implements OnInit {
 
   editConsultation(consultation: ConsultationRow): void {
     this.editingId = consultation.id;
+    this.consultationForm.templateName = consultation.templateName || 'CONSULTATION_GENERALE';
+    this.consultationForm.consultationReason = consultation.motif;
+    this.consultationForm.diagnosis = consultation.diagnosis;
     this.consultationForm.observation = consultation.notes;
+    this.consultationForm.followUpPlan = consultation.followUpPlan;
+    this.consultationForm.bloodPressure = consultation.vitals['bloodPressure'] ?? '';
+    this.consultationForm.heartRate = consultation.vitals['heartRate'] ?? '';
+    this.consultationForm.temperature = consultation.vitals['temperature'] ?? '';
+    this.consultationForm.weight = consultation.vitals['weight'] ?? '';
     this.consultationForm.prescriptionsText = consultation.prescriptions.join('\n');
+    this.prescriptionItems = consultation.prescriptionItems.map((item) => ({ ...item }));
     window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll back to form
+  }
+
+  searchMedications(): void {
+    const query = this.prescriptionDraft.medicationName.trim();
+    if (query.length < 2) {
+      this.medicationSuggestions = [];
+      return;
+    }
+    this.api.searchMedications(query).subscribe({
+      next: (items) => {
+        this.medicationSuggestions = items;
+      },
+    });
+  }
+
+  applyMedicationSuggestion(suggestionName: string): void {
+    const suggestion = this.medicationSuggestions.find((item) => item.name === suggestionName);
+    if (!suggestion) {
+      return;
+    }
+    this.prescriptionDraft.medicationName = suggestion.name;
+    this.prescriptionDraft.dosage = suggestion.commonDosage;
+    this.prescriptionDraft.frequency = suggestion.frequencyHint;
+  }
+
+  addPrescriptionItem(): void {
+    if (!this.prescriptionDraft.medicationName.trim()) {
+      this.formError = 'Ajoutez le nom du médicament avant de l’ajouter à l’ordonnance.';
+      return;
+    }
+    this.prescriptionItems = [
+      ...this.prescriptionItems,
+      {
+        medicationName: this.prescriptionDraft.medicationName.trim(),
+        dosage: this.prescriptionDraft.dosage.trim(),
+        frequency: this.prescriptionDraft.frequency.trim(),
+        durationDays: this.prescriptionDraft.durationDays,
+        instructions: this.prescriptionDraft.instructions.trim(),
+      },
+    ];
+    this.consultationForm.prescriptionsText = '';
+    this.prescriptionDraft = {
+      medicationName: '',
+      dosage: '',
+      frequency: '',
+      durationDays: 7,
+      instructions: '',
+    };
+    this.medicationSuggestions = [];
+  }
+
+  removePrescriptionItem(index: number): void {
+    this.prescriptionItems = this.prescriptionItems.filter((_, itemIndex) => itemIndex !== index);
   }
 
   onDoctorPatientChange(): void {
@@ -283,10 +411,22 @@ export class MedicalRecord implements OnInit {
   }
 
   private get prescriptions(): string[] {
+    if (this.prescriptionItems.length) {
+      return this.prescriptionItems.map((item) => item.medicationName);
+    }
     return this.consultationForm.prescriptionsText
       .split('\n')
       .map((item) => item.trim())
       .filter(Boolean);
+  }
+
+  private get vitals(): Record<string, string> {
+    return {
+      bloodPressure: this.consultationForm.bloodPressure,
+      heartRate: this.consultationForm.heartRate,
+      temperature: this.consultationForm.temperature,
+      weight: this.consultationForm.weight,
+    };
   }
 
   private toConsultationRow(consultation: BackendConsultation): ConsultationRow {
@@ -294,9 +434,14 @@ export class MedicalRecord implements OnInit {
       id: consultation.id,
       date: consultation.createdAt ? consultation.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
       doctor: consultation.doctorId ? `Médecin #${consultation.doctorId}` : 'Médecin',
-      motif: 'Consultation',
+      motif: consultation.consultationReason ?? 'Consultation',
+      templateName: consultation.templateName ?? 'CONSULTATION_GENERALE',
+      diagnosis: consultation.diagnosis ?? '',
       notes: consultation.observation ?? '',
+      followUpPlan: consultation.followUpPlan ?? '',
+      vitals: consultation.vitals ?? {},
       prescriptions: consultation.prescriptions ?? [],
+      prescriptionItems: consultation.prescriptionItems ?? [],
       files: consultation.files ?? [],
     };
   }

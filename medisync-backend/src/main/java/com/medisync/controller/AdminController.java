@@ -1,14 +1,22 @@
 package com.medisync.controller;
 
+import com.medisync.dto.AdminTwoFactorStatusDto;
+import com.medisync.model.enums.Permission;
 import com.medisync.model.enums.Role;
 import com.medisync.model.nosql.AuditLog;
+import com.medisync.model.sql.ClinicProfile;
 import com.medisync.model.sql.Doctor;
+import com.medisync.model.sql.MedicalAct;
 import com.medisync.model.sql.Room;
 import com.medisync.model.sql.User;
 import com.medisync.service.AdminService;
+import com.medisync.service.AdminTwoFactorService;
+import com.medisync.service.MedicalActService;
+import com.medisync.util.RolePermissionCatalog;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -28,6 +36,8 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AdminTwoFactorService adminTwoFactorService;
+    private final MedicalActService medicalActService;
 
     // ── Gestion des utilisateurs ──────────────────────────────────────────────
 
@@ -62,9 +72,17 @@ public class AdminController {
                         request.getLastname(),
                         request.getEmail(),
                         request.getPassword(),
-                        request.getRole()
+                        request.getRole(),
+                        request.getExtraPermissions()
                 )
         );
+    }
+
+    @PutMapping("/users/{id}/permissions")
+    public ResponseEntity<User> updateUserPermissions(
+            @PathVariable Long id,
+            @RequestBody UserPermissionsUpdateRequest request) {
+        return ResponseEntity.ok(adminService.updateUserPermissions(id, request.getExtraPermissions()));
     }
 
     /**
@@ -102,7 +120,11 @@ public class AdminController {
                         request.getSpecialty(),
                         request.getBio(),
                         request.getSpokenLanguages(),
-                        request.getRate()
+                        request.getRate(),
+                        request.getAvailabilityStart(),
+                        request.getAvailabilityEnd(),
+                        request.getWorkingDays(),
+                        request.getDefaultSlotMinutes()
                 )
         );
     }
@@ -116,6 +138,16 @@ public class AdminController {
     @GetMapping("/rooms")
     public ResponseEntity<List<Room>> getAllRooms() {
         return ResponseEntity.ok(adminService.getAllRooms());
+    }
+
+    @GetMapping("/clinic-profile")
+    public ResponseEntity<ClinicProfile> getClinicProfile() {
+        return ResponseEntity.ok(adminService.getClinicProfile());
+    }
+
+    @PutMapping("/clinic-profile")
+    public ResponseEntity<ClinicProfile> updateClinicProfile(@RequestBody ClinicProfile profile) {
+        return ResponseEntity.ok(adminService.updateClinicProfile(profile));
     }
 
     /**
@@ -141,6 +173,43 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/medical-acts")
+    public ResponseEntity<List<MedicalAct>> getAllMedicalActs(@RequestParam(required = false) String q) {
+        return ResponseEntity.ok(medicalActService.getAll(q));
+    }
+
+    @PostMapping("/medical-acts")
+    public ResponseEntity<MedicalAct> createMedicalAct(@RequestBody MedicalActRequest request) {
+        MedicalAct act = new MedicalAct();
+        act.setCode(request.getCode());
+        act.setLabel(request.getLabel());
+        act.setCategory(request.getCategory());
+        act.setSector(request.getSector());
+        act.setDurationMinutes(request.getDurationMinutes());
+        act.setBaseTariff(request.getBaseTariff());
+        act.setDescription(request.getDescription());
+        return ResponseEntity.ok(medicalActService.create(act));
+    }
+
+    @PutMapping("/medical-acts/{id}")
+    public ResponseEntity<MedicalAct> updateMedicalAct(@PathVariable Long id, @RequestBody MedicalActRequest request) {
+        MedicalAct act = new MedicalAct();
+        act.setCode(request.getCode());
+        act.setLabel(request.getLabel());
+        act.setCategory(request.getCategory());
+        act.setSector(request.getSector());
+        act.setDurationMinutes(request.getDurationMinutes());
+        act.setBaseTariff(request.getBaseTariff());
+        act.setDescription(request.getDescription());
+        return ResponseEntity.ok(medicalActService.update(id, act));
+    }
+
+    @DeleteMapping("/medical-acts/{id}")
+    public ResponseEntity<Void> deleteMedicalAct(@PathVariable Long id) {
+        medicalActService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ── Tableau de bord / Statistiques ───────────────────────────────────────
 
     /**
@@ -160,6 +229,14 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getDashboard(from, to));
     }
 
+    @GetMapping("/permissions/catalog")
+    public ResponseEntity<Map<String, Object>> getPermissionCatalog() {
+        return ResponseEntity.ok(Map.of(
+                "availablePermissions", RolePermissionCatalog.availablePermissionNames(),
+                "roleDefaults", RolePermissionCatalog.roleDefaults()
+        ));
+    }
+
     // ── Journal d'audit ───────────────────────────────────────────────────────
 
     /**
@@ -174,6 +251,19 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAuditLogs());
     }
 
+    @GetMapping("/two-factor")
+    public ResponseEntity<AdminTwoFactorStatusDto> getTwoFactorStatus(
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(adminTwoFactorService.getStatus(currentUser));
+    }
+
+    @PostMapping("/two-factor/enable")
+    public ResponseEntity<AdminTwoFactorStatusDto> enableTwoFactor(
+            @AuthenticationPrincipal User currentUser,
+            @RequestBody TwoFactorEnableRequest request) {
+        return ResponseEntity.ok(adminTwoFactorService.enable(currentUser, request.getOtpCode()));
+    }
+
     // ── DTOs internes ─────────────────────────────────────────────────────────
 
     @lombok.Data
@@ -183,6 +273,12 @@ public class AdminController {
         private String email;
         private String password;
         private Role role;
+        private java.util.Set<Permission> extraPermissions;
+    }
+
+    @lombok.Data
+    public static class UserPermissionsUpdateRequest {
+        private java.util.Set<Permission> extraPermissions;
     }
 
     @lombok.Data
@@ -191,11 +287,31 @@ public class AdminController {
         private String bio;
         private String spokenLanguages;
         private Double rate;
+        private java.time.LocalTime availabilityStart;
+        private java.time.LocalTime availabilityEnd;
+        private String workingDays;
+        private Integer defaultSlotMinutes;
     }
 
     @lombok.Data
     public static class RoomCreateRequest {
         private String roomNumber;
         private String equipmentType;
+    }
+
+    @lombok.Data
+    public static class MedicalActRequest {
+        private String code;
+        private String label;
+        private String category;
+        private String sector;
+        private Integer durationMinutes;
+        private Double baseTariff;
+        private String description;
+    }
+
+    @lombok.Data
+    public static class TwoFactorEnableRequest {
+        private String otpCode;
     }
 }

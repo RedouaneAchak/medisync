@@ -1,12 +1,21 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
+import { forkJoin } from 'rxjs';
 
 import { TabBarComponent } from '../../shared/tab-bar/tab-bar.component';
 import { AuthService } from '../../services/auth.service';
 import { MedisyncApiService } from '../../services/medisync-api.service';
-import { BackendDoctor, BackendRoom } from '../../services/medisync.models';
+import {
+  BackendClinicProfile,
+  BackendDoctor,
+  BackendDoctorFeedbackSummary,
+  BackendMedicalAct,
+  BackendPatient,
+  BackendRoom,
+} from '../../services/medisync.models';
 
 interface BookingDoctor {
   id: number;
@@ -24,17 +33,20 @@ interface BookingDoctor {
   templateUrl: './booking.page.html',
   styleUrls: ['./booking.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonContent, TabBarComponent],
+  imports: [CommonModule, FormsModule, IonContent, TabBarComponent],
 })
 export class BookingPage implements OnInit {
   doctor: BookingDoctor | null = null;
   rooms: BackendRoom[] = [];
+  bookingPatients: BackendPatient[] = [];
+  clinicProfile: BackendClinicProfile | null = null;
+  medicalActs: BackendMedicalAct[] = [];
+  selectedPatientId = 0;
+  selectedMedicalActId = 0;
   error = '';
   saving = false;
   loadingSlots = false;
-
-  motifs = ['Consultation générale', 'Suivi', 'Urgence', 'Première visite'];
-  selectedMotif = '';
+  private feedbackMap = new Map<number, BackendDoctorFeedbackSummary>();
   selectedDate = this.generateDates()[0]?.full ?? '';
   selectedSlot = '';
 
@@ -50,6 +62,13 @@ export class BookingPage implements OnInit {
   ngOnInit(): void {
     this.resolveDoctor();
     this.loadRooms();
+    this.loadMedicalActs();
+    this.loadBookingPatients();
+    this.loadClinicProfile();
+  }
+
+  get canChooseDependent(): boolean {
+    return this.bookingPatients.length > 1;
   }
 
   generateDates(): Array<{ day: string; num: string; full: string }> {
@@ -81,14 +100,19 @@ export class BookingPage implements OnInit {
   }
 
   canConfirm(): boolean {
-    return !!this.doctor && !!this.selectedMotif && !!this.selectedDate && !!this.selectedSlot && !!this.rooms[0]?.id;
+    return !!this.doctor && !!this.selectedMedicalAct && !!this.selectedDate && !!this.selectedSlot && !!this.rooms[0]?.id;
+  }
+
+  get selectedMedicalAct(): BackendMedicalAct | undefined {
+    return this.medicalActs.find((item) => item.id === this.selectedMedicalActId);
   }
 
   confirmBooking(): void {
     const user = this.authService.currentUser();
     const roomId = this.rooms[0]?.id;
+    const patientId = this.selectedPatientId || user?.userId;
 
-    if (!user || !this.doctor || !roomId || !this.canConfirm()) {
+    if (!user || !this.doctor || !roomId || !this.canConfirm() || !patientId) {
       this.error = 'Informations incomplètes pour créer le rendez-vous.';
       return;
     }
@@ -98,19 +122,19 @@ export class BookingPage implements OnInit {
 
     this.api
       .createAppointment({
-        patientId: user.userId,
+        patientId,
         doctorId: this.doctor.id,
         roomId,
         dateTime: `${this.selectedDate}T${this.selectedSlot}:00`,
-        durationMinutes: 30,
-        appointmentType: this.selectedMotif,
+        durationMinutes: this.selectedMedicalAct?.durationMinutes ?? 30,
+        appointmentType: this.selectedMedicalAct?.label ?? 'Consultation',
         description: 'Réservation effectuée depuis l’application mobile',
       })
       .subscribe({
         next: () => {
           this.saving = false;
           alert(
-            `RDV confirmé avec ${this.doctor?.name}\n📅 ${this.selectedDate} à ${this.selectedSlot}\nMotif : ${this.selectedMotif}`,
+            `RDV confirmé avec ${this.doctor?.name}\n📅 ${this.selectedDate} à ${this.selectedSlot}\nMotif : ${this.selectedMedicalAct?.label ?? 'Consultation'}`,
           );
           void this.router.navigate(['/appointments']);
         },
@@ -119,6 +143,15 @@ export class BookingPage implements OnInit {
           this.error = 'Création impossible. Le créneau ou la salle est peut-être déjà pris.';
         },
       });
+  }
+
+  openDirections(): void {
+    const destination =
+      this.clinicProfile?.latitude != null && this.clinicProfile?.longitude != null
+        ? `${this.clinicProfile.latitude},${this.clinicProfile.longitude}`
+        : encodeURIComponent(`${this.clinicProfile?.address ?? ''} ${this.clinicProfile?.city ?? ''}`.trim());
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+    window.open(url, '_blank');
   }
 
   goBack(): void {
@@ -133,8 +166,12 @@ export class BookingPage implements OnInit {
       return;
     }
 
-    this.api.getDoctors().subscribe({
-      next: (doctors: BackendDoctor[]) => {
+    forkJoin({
+      doctors: this.api.getDoctors(),
+      summaries: this.api.getDoctorFeedbackSummaries(),
+    }).subscribe({
+      next: ({ doctors, summaries }: { doctors: BackendDoctor[]; summaries: BackendDoctorFeedbackSummary[] }) => {
+        this.feedbackMap = new Map(summaries.map((item) => [item.doctorId, item]));
         if (!doctors.length) {
           this.error = 'Aucun médecin disponible.';
           return;
@@ -162,13 +199,68 @@ export class BookingPage implements OnInit {
     });
   }
 
-  private refreshSlots(): void {
+  private loadMedicalActs(): void {
+    this.api.getMedicalActs().subscribe({
+      next: (acts: BackendMedicalAct[]) => {
+        this.medicalActs = acts;
+        this.selectedMedicalActId = acts[0]?.id ?? 0;
+        this.refreshSlots();
+      },
+      error: () => {
+        this.error = 'Impossible de charger les actes médicaux.';
+      },
+    });
+  }
+
+  private loadBookingPatients(): void {
+    const user = this.authService.currentUser();
+    if (!user) {
+      return;
+    }
+
+    const selfOption: BackendPatient = {
+      id: user.userId,
+      firstName: user.firstname,
+      lastName: user.lastname,
+      user: {
+        id: user.userId,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        role: user.role,
+      },
+    };
+    this.bookingPatients = [selfOption];
+    this.selectedPatientId = user.userId;
+
+    this.api.getDependents(user.userId).subscribe({
+      next: (dependents: BackendPatient[]) => {
+        this.bookingPatients = [selfOption, ...dependents];
+      },
+    });
+  }
+
+  private loadClinicProfile(): void {
+    this.api.getClinicProfile().subscribe({
+      next: (profile: BackendClinicProfile) => {
+        this.clinicProfile = profile;
+      },
+    });
+
+    this.api.getDoctorFeedbackSummaries().subscribe({
+      next: (summaries: BackendDoctorFeedbackSummary[]) => {
+        this.feedbackMap = new Map(summaries.map((item) => [item.doctorId, item]));
+      },
+    });
+  }
+
+  refreshSlots(): void {
     if (!this.doctor || !this.selectedDate) {
       return;
     }
 
     this.loadingSlots = true;
-    this.api.getAvailableSlots(this.doctor.id, this.selectedDate).subscribe({
+    this.api.getAvailableSlots(this.doctor.id, this.selectedDate, this.selectedMedicalAct?.durationMinutes ?? 30).subscribe({
       next: (slots: string[]) => {
         this.loadingSlots = false;
         this.timeSlots = slots.map((slot) => ({ time: slot.slice(11, 16), available: true }));
@@ -197,7 +289,7 @@ export class BookingPage implements OnInit {
       id: doctor.id,
       name: `Dr. ${firstName} ${lastName}`.trim(),
       specialty: doctor.specialty ?? 'Médecine générale',
-      rating: 4.8,
+      rating: Number((this.feedbackMap.get(doctor.id)?.averageRating ?? 4.8).toFixed(1)),
       location: 'MediSync',
       initials: `${firstName[0] ?? 'D'}${lastName[0] ?? 'R'}`.toUpperCase(),
       avatarBg: colors.bg,

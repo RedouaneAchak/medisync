@@ -11,6 +11,13 @@
       <a routerLink="/booking" class="btn primary">Demander un rendez-vous</a>
       <a routerLink="/login" class="btn secondary">Acceder a mon espace</a>
     </div>
+    @if (clinicProfile) {
+      <div class="summary-box">
+        <strong>{{ clinicProfile.name }}</strong>
+        <span>{{ clinicProfile.address }}, {{ clinicProfile.city }}</span>
+        <span>{{ clinicProfile.phone }} · {{ clinicProfile.email }}</span>
+      </div>
+    }
   </div>
   <figure class="home-hero-photo">
     <img
@@ -189,9 +196,9 @@
     </div>
     <div>
       <h3>Contact</h3>
-      <p>Casablanca, Maroc</p>
-      <p>support@medisync.ma</p>
-      <p>+212 5 22 00 00 00</p>
+      <p>{{ clinicProfile?.address || 'Casablanca, Maroc' }}</p>
+      <p>{{ clinicProfile?.email || 'support@medisync.ma' }}</p>
+      <p>{{ clinicProfile?.phone || '+212 5 22 00 00 00' }}</p>
     </div>
     <div>
       <h3>Acces rapide</h3>

@@ -1,8 +1,9 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize, timeout } from 'rxjs';
+
 import { AuthService } from '../../services/auth.service';
-import { BackendDoctor, BackendPatient, BackendRoom, MedisyncApiService } from '../../services/medisync-api.service';
+import { BackendDoctor, BackendMedicalAct, BackendPatient, BackendRoom, MedisyncApiService } from '../../services/medisync-api.service';
 
 interface DoctorOption {
   id: number;
@@ -20,21 +21,21 @@ export class Booking implements OnInit {
   doctors: DoctorOption[] = [];
   rooms: BackendRoom[] = [];
   patients: BackendPatient[] = [];
-  
+  medicalActs: BackendMedicalAct[] = [];
+
   selectedDoctorId = 0;
   selectedRoomId = 0;
   selectedPatientId = 0;
+  selectedMedicalActId = 0;
   selectedDate = new Date().toISOString().slice(0, 10);
   selectedTime = '09:30';
-  motif = 'Suivi';
   description = '';
   forSomeoneElse = false;
-  
-  saving = false; // Controls the submit button exactly like Profile
+
+  saving = false;
   loadingDoctors = false;
   loadingRooms = false;
-  
-  // Replaced the old message system with the strict Profile pattern
+
   error = '';
   success = '';
 
@@ -43,44 +44,60 @@ export class Booking implements OnInit {
   constructor(
     private readonly api: MedisyncApiService,
     private readonly authService: AuthService,
-    private readonly cdr: ChangeDetectorRef // Prevents the double-click UI bug!
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.loadDoctors();
     this.loadRooms();
-    this.loadPatientsForStaff();
+    this.loadMedicalActs();
+    this.loadPatientsContext();
   }
 
   get selectedDoctor(): string {
     return this.doctors.find((doctor) => doctor.id === this.selectedDoctorId)?.name ?? '';
   }
 
+  get selectedMedicalAct(): BackendMedicalAct | undefined {
+    return this.medicalActs.find((item) => item.id === this.selectedMedicalActId);
+  }
+
+  get canChoosePatient(): boolean {
+    const role = this.authService.currentUser()?.role;
+    return role === 'SECRETARY' || role === 'ADMIN' || (role === 'PATIENT' && this.forSomeoneElse && this.patients.length > 1);
+  }
+
+  get canBookForSomeoneElse(): boolean {
+    return this.authService.currentUser()?.role === 'PATIENT' && this.patients.length > 1;
+  }
+
   submit(): void {
-    // Reset messages when they click save
     this.error = '';
     this.success = '';
 
     const user = this.authService.currentUser();
     const roomId = this.selectedRoomId || this.rooms[0]?.id;
-    const patientId = user?.role === 'PATIENT' ? user.userId : this.selectedPatientId;
-    
+    const patientId =
+      user?.role === 'PATIENT'
+        ? this.forSomeoneElse
+          ? this.selectedPatientId || user.userId
+          : user.userId
+        : this.selectedPatientId;
+
     if (!user || !roomId) {
       this.error = 'Connectez-vous et créez au moins une salle avant de réserver.';
       return;
     }
-
     if (!this.selectedDoctorId) {
       this.error = 'Aucun médecin backend disponible pour réserver.';
       return;
     }
-
     if (!patientId) {
       this.error = 'Choisissez le patient concerné par le rendez-vous.';
       return;
     }
 
-    this.saving = true; // Lock the button and start spinner
+    this.saving = true;
 
     this.api
       .createAppointment({
@@ -88,15 +105,15 @@ export class Booking implements OnInit {
         doctorId: this.selectedDoctorId,
         roomId,
         dateTime: `${this.selectedDate}T${this.selectedTime}:00`,
-        durationMinutes: 30,
-        appointmentType: this.motif,
+        durationMinutes: this.selectedMedicalAct?.durationMinutes ?? 30,
+        appointmentType: this.selectedMedicalAct?.label ?? 'Consultation',
         description: this.description,
       })
       .pipe(
         timeout(7000),
         finalize(() => {
-          this.saving = false; // Always unlock the button
-          this.cdr.detectChanges(); // Force Angular to draw the result
+          this.saving = false;
+          this.cdr.detectChanges();
         }),
       )
       .subscribe({
@@ -104,11 +121,10 @@ export class Booking implements OnInit {
           this.success = `Rendez-vous créé avec succès. Statut: ${appointment.status ?? 'PENDING'}.`;
           this.refreshSlots();
         },
-        error: (err: any) => {
-          // Bulletproof error extraction exactly like Profile
+        error: (err: { name?: string; error?: { message?: string } | string }) => {
           if (err.name === 'TimeoutError') {
             this.error = 'Réservation trop longue. Vérifiez que le backend est démarré.';
-          } else if (err.error && typeof err.error === 'string') {
+          } else if (typeof err.error === 'string') {
             this.error = err.error;
           } else if (err.error?.message) {
             this.error = err.error.message;
@@ -119,18 +135,17 @@ export class Booking implements OnInit {
       });
   }
 
-  get canChoosePatient(): boolean {
-    const role = this.authService.currentUser()?.role;
-    return role === 'SECRETARY' || role === 'ADMIN';
-  }
-
   refreshSlots(): void {
     if (!this.selectedDoctorId || !this.selectedDate) {
       return;
     }
 
     this.error = '';
-    this.api.getAvailableSlots(this.selectedDoctorId, this.selectedDate).subscribe({
+    this.api.getAvailableSlots(
+      this.selectedDoctorId,
+      this.selectedDate,
+      this.selectedMedicalAct?.durationMinutes ?? 30,
+    ).subscribe({
       next: (slots) => {
         this.slots = slots.map((slot) => slot.slice(11, 16));
         if (this.slots.length) {
@@ -148,6 +163,10 @@ export class Booking implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  onMedicalActChange(): void {
+    this.refreshSlots();
   }
 
   private loadDoctors(): void {
@@ -193,8 +212,51 @@ export class Booking implements OnInit {
     });
   }
 
-  private loadPatientsForStaff(): void {
-    if (!this.canChoosePatient) {
+  private loadMedicalActs(): void {
+    this.api.getMedicalActs().subscribe({
+      next: (acts) => {
+        this.medicalActs = acts;
+        this.selectedMedicalActId = acts[0]?.id ?? 0;
+        if (acts.length) {
+          this.refreshSlots();
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.error = 'Impossible de charger les actes médicaux.';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private loadPatientsContext(): void {
+    const user = this.authService.currentUser();
+    if (!user) {
+      return;
+    }
+
+    if (user.role === 'PATIENT') {
+      const selfOption: BackendPatient = {
+        id: user.userId,
+        firstName: user.firstname,
+        lastName: user.lastname,
+        user: {
+          id: user.userId,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          email: user.email,
+          role: user.role,
+        },
+      };
+      this.patients = [selfOption];
+      this.selectedPatientId = user.userId;
+
+      this.api.getDependents(user.userId).subscribe({
+        next: (dependents) => {
+          this.patients = [selfOption, ...dependents];
+          this.cdr.detectChanges();
+        },
+      });
       return;
     }
 

@@ -17,6 +17,18 @@
     <div class="section-label" *ngIf="error">{{ error }}</div>
     <div class="section-label" *ngIf="uploadMessage">{{ uploadMessage }}</div>
 
+    <div class="section-label">Profil médical</div>
+    <div class="consult-card">
+      <div class="consult-left">
+        <div class="consult-doctor">Allergies</div>
+        <div class="consult-motif">{{ patientAllergies }}</div>
+        <div class="consult-doctor">Antécédents</div>
+        <div class="consult-motif">{{ patientAntecedents }}</div>
+        <div class="consult-doctor">Traitements déclarés</div>
+        <div class="consult-motif">{{ patientTreatmentsSummary }}</div>
+      </div>
+    </div>
+
     <div class="section-label">Consultations récentes</div>
     <div class="consult-card" *ngFor="let c of consultations">
       <div class="consult-left">

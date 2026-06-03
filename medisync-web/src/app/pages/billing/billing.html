@@ -22,6 +22,58 @@
     <div class="section-heading">
       <div>
         <span class="eyebrow">Secretariat</span>
+        <h2>Feuilles de soins</h2>
+      </div>
+    </div>
+    <form class="form-panel" (ngSubmit)="createCareSheet()">
+      <label>
+        Rendez-vous
+        <select [(ngModel)]="newCareSheet.appointmentId" name="careSheetAppointmentId" required>
+          @for (appointment of pendingAppointments; track appointment.id) {
+            <option [ngValue]="appointment.id">{{ appointmentLabel(appointment) }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Acte médical
+        <select [(ngModel)]="newCareSheet.medicalActId" name="medicalActId" (ngModelChange)="updateCareSheetAmount()" required>
+          @for (act of medicalActs; track act.id) {
+            <option [ngValue]="act.id">{{ act.label }} · {{ act.durationMinutes }} min · {{ act.baseTariff }} MAD</option>
+          }
+        </select>
+      </label>
+      <label>
+        Montant
+        <input [(ngModel)]="newCareSheet.amount" name="careSheetAmount" type="number" min="1" step="0.01" required />
+      </label>
+      <label>
+        Notes
+        <textarea [(ngModel)]="newCareSheet.notes" name="careSheetNotes" rows="3" placeholder="Actes réalisés, assurance, informations utiles"></textarea>
+      </label>
+      <button class="btn secondary" type="submit" [disabled]="!pendingAppointments.length || !medicalActs.length">Générer la feuille de soins</button>
+    </form>
+    <div class="table-list">
+      @for (careSheet of careSheets; track careSheet.id) {
+        <div class="list-row">
+          <div>
+            <strong>FDS-{{ careSheet.id }}</strong>
+            <span>{{ careSheet.medicalAct?.label }} · {{ careSheet.amount }} MAD</span>
+          </div>
+          <span class="badge" [class]="careSheet.status === 'INVOICED' ? 'tone-green' : 'tone-yellow'">{{ careSheet.status || 'DRAFT' }}</span>
+          @if ((careSheet.status || 'DRAFT') !== 'INVOICED') {
+            <button type="button" (click)="invoiceCareSheet(careSheet)">Facturer</button>
+          }
+        </div>
+      } @empty {
+        <p class="muted">Aucune feuille de soins générée pour le moment.</p>
+      }
+    </div>
+  </section>
+
+  <section class="section-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">Secretariat</span>
         <h2>Generer une facture</h2>
       </div>
     </div>
@@ -73,6 +125,8 @@
         <span class="badge" [class]="invoice.paid ? 'tone-green' : 'tone-yellow'">
           {{ invoice.paid ? 'Payee' : 'En attente' }}
         </span>
+        <button type="button" (click)="exportInvoice(invoice)">Exporter PDF</button>
+        <button type="button" (click)="emailInvoice(invoice)">Envoyer par email</button>
         @if (!invoice.paid && canCollectPayments) {
           <button type="button" (click)="markPaid(invoice)">Encaisser</button>
         }

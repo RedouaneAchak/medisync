@@ -1,10 +1,12 @@
 package com.medisync.service;
 
+import com.medisync.model.enums.Permission;
 import com.medisync.model.nosql.AuditLog;
 import com.medisync.model.sql.*;
 import com.medisync.model.enums.Role;
 import com.medisync.repository.nosql.AuditLogRepository;
 import com.medisync.repository.sql.*;
+import com.medisync.util.PasswordPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class AdminService {
     private final AppointmentRepository appointmentRepository;
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
+    private final ClinicProfileRepository clinicProfileRepository;
     private final AuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -30,16 +33,20 @@ public class AdminService {
 
     @Transactional
     public User createUser(String firstname, String lastname,
-                           String email, String rawPassword, Role role) {
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email déjà utilisé : " + email);
+                           String email, String rawPassword, Role role,
+                           Set<Permission> extraPermissions) {
+        String normalizedEmail = email.trim().toLowerCase();
+        PasswordPolicy.validateOrThrow(rawPassword);
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new RuntimeException("Email déjà utilisé : " + normalizedEmail);
         }
         User user = User.builder()
                 .firstname(firstname)
                 .lastname(lastname)
-                .email(email)
+                .email(normalizedEmail)
                 .password(passwordEncoder.encode(rawPassword))
                 .role(role)
+                .extraPermissions(extraPermissions == null ? new LinkedHashSet<>() : new LinkedHashSet<>(extraPermissions))
                 .build();
         User saved = userRepository.save(user);
 
@@ -47,6 +54,10 @@ public class AdminService {
         if (role == Role.DOCTOR) {
             Doctor doctor = new Doctor();
             doctor.setUser(saved);
+            doctor.setAvailabilityStart(java.time.LocalTime.of(8, 0));
+            doctor.setAvailabilityEnd(java.time.LocalTime.of(18, 0));
+            doctor.setWorkingDays("MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY");
+            doctor.setDefaultSlotMinutes(30);
             doctorRepository.save(doctor);
         }
 
@@ -56,6 +67,16 @@ public class AdminService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    @Transactional
+    public User updateUserPermissions(Long userId, Set<Permission> extraPermissions) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable : " + userId));
+        user.setExtraPermissions(extraPermissions == null ? new LinkedHashSet<>() : new LinkedHashSet<>(extraPermissions));
+        User saved = userRepository.save(user);
+        logAudit(null, "UPDATE_USER_PERMISSIONS", "User#" + saved.getId());
+        return saved;
     }
 
     @Transactional
@@ -72,13 +93,21 @@ public class AdminService {
 
     @Transactional
     public Doctor updateDoctor(Long doctorId, String specialty, String bio,
-                               String spokenLanguages, Double rate) {
+                               String spokenLanguages, Double rate,
+                               java.time.LocalTime availabilityStart,
+                               java.time.LocalTime availabilityEnd,
+                               String workingDays,
+                               Integer defaultSlotMinutes) {
         Doctor d = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new RuntimeException("Médecin introuvable : " + doctorId));
         d.setSpecialty(specialty);
         d.setBio(bio);
         d.setSpokenLanguages(spokenLanguages);
         d.setStandardConsultationRate(rate);
+        d.setAvailabilityStart(availabilityStart);
+        d.setAvailabilityEnd(availabilityEnd);
+        d.setWorkingDays(workingDays);
+        d.setDefaultSlotMinutes(defaultSlotMinutes);
         return doctorRepository.save(d);
     }
 
@@ -93,6 +122,25 @@ public class AdminService {
 
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
+    }
+
+    public ClinicProfile getClinicProfile() {
+        return clinicProfileRepository.findById(1L).orElseGet(this::createDefaultClinicProfile);
+    }
+
+    @Transactional
+    public ClinicProfile updateClinicProfile(ClinicProfile incoming) {
+        ClinicProfile profile = getClinicProfile();
+        profile.setName(incoming.getName());
+        profile.setAddress(incoming.getAddress());
+        profile.setCity(incoming.getCity());
+        profile.setPhone(incoming.getPhone());
+        profile.setEmail(incoming.getEmail());
+        profile.setLatitude(incoming.getLatitude());
+        profile.setLongitude(incoming.getLongitude());
+        profile.setOpeningHours(incoming.getOpeningHours());
+        profile.setSpecialtiesOffered(incoming.getSpecialtiesOffered());
+        return clinicProfileRepository.save(profile);
     }
 
     @Transactional
@@ -172,5 +220,20 @@ public class AdminService {
         log.setTargetEntity(target);
         log.setTimestamp(LocalDateTime.now());
         auditLogRepository.save(log);
+    }
+
+    private ClinicProfile createDefaultClinicProfile() {
+        ClinicProfile profile = new ClinicProfile();
+        profile.setId(1L);
+        profile.setName("Clinique MediSync");
+        profile.setAddress("Boulevard de la Santé");
+        profile.setCity("Casablanca");
+        profile.setPhone("+212 5 22 00 00 00");
+        profile.setEmail("contact@medisync.ma");
+        profile.setLatitude(33.5731);
+        profile.setLongitude(-7.5898);
+        profile.setOpeningHours("Lundi - Vendredi: 08:00 - 18:00\nSamedi: 09:00 - 13:00");
+        profile.setSpecialtiesOffered("Médecine générale, Cardiologie, Pédiatrie");
+        return clinicProfileRepository.save(profile);
     }
 }

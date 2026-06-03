@@ -5,6 +5,7 @@ import com.medisync.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -43,6 +44,7 @@ public class AppointmentController {
      * }
      */
     @PostMapping
+    @PreAuthorize("hasAnyAuthority('PATIENT','SECRETARY','ADMIN','BOOK_APPOINTMENTS','MANAGE_APPOINTMENTS')")
     public ResponseEntity<Appointment> create(@RequestBody AppointmentRequest request) {
         return ResponseEntity.ok(
                 appointmentService.create(
@@ -65,6 +67,7 @@ public class AppointmentController {
      * Re-vérifie les disponibilités en excluant le RDV en cours.
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('SECRETARY','ADMIN','MANAGE_APPOINTMENTS')")
     public ResponseEntity<Appointment> update(
             @PathVariable Long id,
             @RequestBody AppointmentUpdateRequest request) {
@@ -86,6 +89,7 @@ public class AppointmentController {
      * Déclenche un log de notification (email à implémenter dans NotificationService).
      */
     @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyAuthority('PATIENT','SECRETARY','ADMIN','BOOK_APPOINTMENTS','MANAGE_APPOINTMENTS')")
     public ResponseEntity<Appointment> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.cancel(id));
     }
@@ -95,6 +99,7 @@ public class AppointmentController {
      * Confirme un rendez-vous — passe le statut à CONFIRMED.
      */
     @PatchMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyAuthority('DOCTOR','SECRETARY','ADMIN','MANAGE_APPOINTMENTS','MANAGE_DOCTOR_SCHEDULE')")
     public ResponseEntity<Appointment> confirm(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.confirm(id));
     }
@@ -106,6 +111,7 @@ public class AppointmentController {
      * Récupère un rendez-vous par son ID.
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('PATIENT','DOCTOR','SECRETARY','ADMIN','VIEW_OWN_APPOINTMENTS','MANAGE_APPOINTMENTS','MANAGE_DOCTOR_SCHEDULE')")
     public ResponseEntity<Appointment> getById(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.getById(id));
     }
@@ -115,6 +121,7 @@ public class AppointmentController {
      * Retourne tous les rendez-vous (usage admin / secrétaire).
      */
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('SECRETARY','ADMIN','MANAGE_APPOINTMENTS')")
     public ResponseEntity<List<Appointment>> getAll() {
         return ResponseEntity.ok(appointmentService.getAll());
     }
@@ -124,6 +131,7 @@ public class AppointmentController {
      * Retourne tous les rendez-vous d'un patient spécifique.
      */
     @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasAnyAuthority('PATIENT','SECRETARY','ADMIN','VIEW_OWN_APPOINTMENTS','MANAGE_APPOINTMENTS')")
     public ResponseEntity<List<Appointment>> getByPatient(
             @PathVariable Long patientId) {
         return ResponseEntity.ok(appointmentService.getByPatient(patientId));

@@ -16,14 +16,17 @@ export class Login {
 
   email = '';
   password = '';
+  otpCode = '';
   fullName = '';
   phone = '';
+  socialSecurityNumber = '';
   
   mode: 'signin' | 'signup' = 'signin';
   error = '';
   loading = false;
   googleLoading = false;
   googleEnabled = false;
+  private readonly passwordPattern = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
   constructor(
     private readonly authService: AuthService,
@@ -52,6 +55,16 @@ export class Login {
 
   submit(): void {
     this.error = '';
+
+    if (!this.email || !this.password || (this.mode === 'signup' && !this.fullName.trim())) {
+      this.error = 'Veuillez renseigner les champs requis.';
+      return;
+    }
+    if (this.mode === 'signup' && !this.passwordPattern.test(this.password)) {
+      this.error = 'Le mot de passe doit contenir 8 caractères minimum, une majuscule, un chiffre et un caractère spécial.';
+      return;
+    }
+
     this.loading = true;
 
     const firstName = this.fullName.trim().split(' ')[0] || 'Patient';
@@ -60,8 +73,15 @@ export class Login {
 
     const request =
       this.mode === 'signin'
-        ? this.authService.login(this.email, this.password)
-        : this.authService.register(firstName, lastName, this.email, this.password, this.phone);
+        ? this.authService.login(this.email, this.password, this.otpCode)
+        : this.authService.register(
+            firstName,
+            lastName,
+            this.email,
+            this.password,
+            this.phone,
+            this.socialSecurityNumber,
+          );
 
     request.subscribe({
       next: () => {
@@ -76,7 +96,10 @@ export class Login {
         console.error('Login Failed:', err);
 
         if (err.status === 401 || err.status === 403 || err.status === 400) {
-            this.error = 'Email ou mot de passe incorrect. Veuillez réessayer.';
+            this.error =
+              this.mode === 'signin'
+                ? err.error?.message ?? 'Identifiant ou mot de passe incorrect. Veuillez réessayer.'
+                : err.error?.message ?? 'Inscription impossible. Vérifiez vos informations.';
         } else {
             this.error = 'Erreur serveur. Vérifiez que le backend est démarré.';
         }

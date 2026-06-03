@@ -2,12 +2,17 @@ package com.medisync.controller;
 
 import com.medisync.model.sql.Appointment;
 import com.medisync.model.sql.Doctor;
+import com.medisync.model.sql.DoctorUnavailability;
 import com.medisync.model.sql.Patient;
+import com.medisync.model.sql.User;
 import com.medisync.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -100,6 +105,41 @@ public ResponseEntity<List<Doctor>> searchDoctors(
         );
     }
 
+    @GetMapping("/{id}/unavailabilities")
+    public ResponseEntity<List<DoctorUnavailability>> getUnavailabilities(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+        assertDoctorManagementAccess(currentUser, id);
+        return ResponseEntity.ok(doctorService.getUnavailabilities(id));
+    }
+
+    @PostMapping("/{id}/unavailabilities")
+    public ResponseEntity<DoctorUnavailability> addUnavailability(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser,
+            @RequestBody DoctorUnavailabilityRequest request) {
+        assertDoctorManagementAccess(currentUser, id);
+        return ResponseEntity.ok(
+                doctorService.addUnavailability(
+                        id,
+                        request.getStartDateTime(),
+                        request.getEndDateTime(),
+                        request.getReason(),
+                        request.getType()
+                )
+        );
+    }
+
+    @DeleteMapping("/{id}/unavailabilities/{unavailabilityId}")
+    public ResponseEntity<Void> deleteUnavailability(
+            @PathVariable Long id,
+            @PathVariable Long unavailabilityId,
+            @AuthenticationPrincipal User currentUser) {
+        assertDoctorManagementAccess(currentUser, id);
+        doctorService.deleteUnavailability(id, unavailabilityId);
+        return ResponseEntity.noContent().build();
+    }
+
     // ── Profil médecin ────────────────────────────────────────────────────────
 
     /**
@@ -123,5 +163,29 @@ public ResponseEntity<List<Doctor>> searchDoctors(
     public ResponseEntity<Patient> getPatientRecord(
             @PathVariable Long patientId) {
         return ResponseEntity.ok(doctorService.getPatientRecord(patientId));
+    }
+
+    private void assertDoctorManagementAccess(User currentUser, Long doctorId) {
+        if (currentUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentification requise.");
+        }
+        if ("ADMIN".equals(currentUser.getRole().name())) {
+            return;
+        }
+        if (!"DOCTOR".equals(currentUser.getRole().name()) || !currentUser.getId().equals(doctorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé à ce planning médecin.");
+        }
+    }
+
+    @lombok.Data
+    public static class DoctorUnavailabilityRequest {
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        private LocalDateTime startDateTime;
+
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        private LocalDateTime endDateTime;
+
+        private String reason;
+        private String type;
     }
 }

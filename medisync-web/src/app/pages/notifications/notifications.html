@@ -4,6 +4,9 @@
 </section>
 
 <section class="section-panel">
+  @if (error) {
+    <p class="muted">{{ error }}</p>
+  }
   @for (notification of notifications; track notification.title) {
     <div class="notification-row">
       <span class="notice-dot" [class]="'tone-' + notification.tone"></span>

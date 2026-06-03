@@ -27,6 +27,15 @@ public class Patient {
     private PatientCategory category;
 
     private String companyName; // For "conventions entreprises"
+    
+    @Column(columnDefinition = "TEXT")
+    private String allergies;
+
+    @Column(columnDefinition = "TEXT")
+    private String medicalAntecedents;
+
+    @Column(columnDefinition = "TEXT")
+    private String currentTreatments;
 
     @ManyToOne
     @JoinColumn(name = "guardian_id")

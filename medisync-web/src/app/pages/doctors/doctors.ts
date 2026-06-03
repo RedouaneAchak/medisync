@@ -1,8 +1,8 @@
 
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { BackendDoctor, MedisyncApiService } from '../../services/medisync-api.service';
-import { Subject, debounceTime, switchMap, takeUntil } from 'rxjs';
+import { BackendDoctor, BackendDoctorFeedbackSummary, MedisyncApiService } from '../../services/medisync-api.service';
+import { Subject, debounceTime, forkJoin, switchMap, takeUntil } from 'rxjs';
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 interface DoctorCard {
   id: number;
@@ -30,6 +30,7 @@ export class Doctors implements OnInit, OnDestroy {
   loading = false;
   error = '';
   message = '';
+  private doctorFeedbackMap = new Map<number, BackendDoctorFeedbackSummary>();
 
   private search$ = new Subject<void>();
   private destroy$ = new Subject<void>();
@@ -74,8 +75,14 @@ export class Doctors implements OnInit, OnDestroy {
     this.loading = true;
     this.error   = '';
     this.message = '';
-    this.api.getDoctors().pipe(takeUntil(this.destroy$)).subscribe({
-      next:  (items) => this.handleResults(items),
+    forkJoin({
+      doctors: this.api.getDoctors(),
+      summaries: this.api.getDoctorFeedbackSummaries(),
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next:  ({ doctors, summaries }) => {
+        this.doctorFeedbackMap = new Map(summaries.map((item) => [item.doctorId, item]));
+        this.handleResults(doctors);
+      },
       error: ()      => this.handleError(),
     });
   }
@@ -107,7 +114,7 @@ private handleResults(items: BackendDoctor[]): void {
       city:      'Casablanca',
       clinic:    'MediSync',
       languages: d.spokenLanguages ?? 'Français, Arabe',
-      rating:    4.7,
+      rating:    Number((this.doctorFeedbackMap.get(d.id)?.averageRating ?? 4.7).toFixed(1)),
       price:     d.standardConsultationRate ?? 300,
       available: true,
       initials:  `${first[0] ?? 'M'}${last[0] ?? 'D'}`.toUpperCase(),

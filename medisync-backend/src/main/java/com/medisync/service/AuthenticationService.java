@@ -9,6 +9,7 @@ import com.medisync.model.enums.Role;
 import com.medisync.repository.sql.PatientRepository;
 import com.medisync.repository.sql.UserRepository;
 import com.medisync.security.JwtService;
+import com.medisync.util.PasswordPolicy;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -32,6 +33,7 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
+    private final AdminTwoFactorService adminTwoFactorService;
 
     // FIX : client ID lu depuis application.properties, plus hardcodé
     @Value("${google.client-id}")
@@ -42,25 +44,29 @@ public class AuthenticationService {
             PatientRepository patientRepository,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            AdminTwoFactorService adminTwoFactorService
     ) {
         this.userRepository    = userRepository;
         this.patientRepository = patientRepository;
         this.jwtService        = jwtService;
         this.authenticationManager = authenticationManager;
         this.passwordEncoder   = passwordEncoder;
+        this.adminTwoFactorService = adminTwoFactorService;
     }
 
     // ── Login classique ───────────────────────────────────────────────────────
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
+        String identifier = loginIdentifier(request);
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        identifier,
                         request.getPassword()
                 )
         );
-        User user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+        User user = resolveUserByIdentifier(identifier);
+        adminTwoFactorService.validateOtp(user, request.getOtpCode());
         return buildAuthResponse(user);
     }
 
@@ -72,14 +78,22 @@ public class AuthenticationService {
      */
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email déjà utilisé : " + request.getEmail());
+        String email = resolveRegistrationEmail(request);
+        String normalizedSsn = normalizeSsn(request.getSocialSecurityNumber());
+
+        PasswordPolicy.validateOrThrow(request.getPassword());
+
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Email déjà utilisé : " + email);
+        }
+        if (normalizedSsn != null && patientRepository.findBySocialSecurityNumber(normalizedSsn).isPresent()) {
+            throw new RuntimeException("Numéro de sécurité sociale déjà utilisé : " + normalizedSsn);
         }
 
         User user = User.builder()
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
-                .email(request.getEmail())
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.PATIENT)
                 .build();
@@ -90,6 +104,8 @@ public class AuthenticationService {
         patient.setUser(user);
         patient.setFirstName(request.getFirstname());
         patient.setLastName(request.getLastname());
+        patient.setPhoneNumber(request.getPhone());
+        patient.setSocialSecurityNumber(normalizedSsn);
         patientRepository.save(patient);
 
         return buildAuthResponse(user);
@@ -142,6 +158,10 @@ public class AuthenticationService {
                 return newUser;
             });
 
+            if (user.getRole() == Role.ADMIN && adminTwoFactorService.isTwoFactorEnabled(user)) {
+                throw new RuntimeException("Les comptes administrateurs avec 2FA active doivent utiliser la connexion classique avec code OTP.");
+            }
+
             return buildAuthResponse(user);
 
         } catch (Exception e) {
@@ -157,6 +177,48 @@ public class AuthenticationService {
                 .lastname(user.getLastname())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .permissions(user.getEffectivePermissions())
+                .twoFactorEnabled(adminTwoFactorService.isTwoFactorEnabled(user))
+                .requiresTwoFactorSetup(adminTwoFactorService.isSetupRequired(user))
                 .build();
+    }
+
+    private String loginIdentifier(AuthenticationRequest request) {
+        if (request.getIdentifier() != null && !request.getIdentifier().isBlank()) {
+            return request.getIdentifier().trim();
+        }
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            return request.getEmail().trim();
+        }
+        throw new RuntimeException("Veuillez renseigner votre email ou votre numéro de sécurité sociale.");
+    }
+
+    private User resolveUserByIdentifier(String identifier) {
+        String normalized = identifier.trim();
+        String compactSsn = normalizeSsn(normalized);
+        return userRepository.findByEmail(normalized)
+                .or(() -> patientRepository.findBySocialSecurityNumber(normalized).map(Patient::getUser))
+                .or(() -> compactSsn == null ? java.util.Optional.empty() : patientRepository.findBySocialSecurityNumber(compactSsn).map(Patient::getUser))
+                .orElseThrow();
+    }
+
+    private String resolveRegistrationEmail(RegisterRequest request) {
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            return request.getEmail().trim().toLowerCase();
+        }
+
+        String normalizedSsn = normalizeSsn(request.getSocialSecurityNumber());
+        if (normalizedSsn == null) {
+            throw new RuntimeException("Veuillez renseigner un email ou un numéro de sécurité sociale.");
+        }
+
+        return "patient-" + normalizedSsn + "@medisync.local";
+    }
+
+    private String normalizeSsn(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.replaceAll("\\s+", "").trim();
     }
 }

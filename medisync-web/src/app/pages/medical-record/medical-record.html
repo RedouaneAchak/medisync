@@ -49,16 +49,82 @@
       </label>
       }
       <label>
+        Modèle de consultation
+        <select [(ngModel)]="consultationForm.templateName" name="templateName">
+          @for (template of consultationTemplates; track template.value) {
+          <option [ngValue]="template.value">{{ template.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Motif de consultation
+        <input [(ngModel)]="consultationForm.consultationReason" name="consultationReason"
+          placeholder="Consultation générale, suivi, urgence..." />
+      </label>
+      <label>
+        Diagnostic / hypothèse
+        <input [(ngModel)]="consultationForm.diagnosis" name="diagnosis"
+          placeholder="Diagnostic principal ou hypothèse" />
+      </label>
+      <label>
         Observation
         <textarea [(ngModel)]="consultationForm.observation" name="observation"
           rows="4" required></textarea>
       </label>
       <label>
-        Prescriptions
+        Plan de suivi
+        <textarea [(ngModel)]="consultationForm.followUpPlan" name="followUpPlan"
+          rows="3" placeholder="Examens complémentaires, contrôle, consignes..."></textarea>
+      </label>
+      <div class="form-panel" style="padding: 0.75rem; gap: 0.75rem;">
+        <strong>Constantes</strong>
+        <label>Tension artérielle <input [(ngModel)]="consultationForm.bloodPressure" name="bloodPressure" placeholder="120/80" /></label>
+        <label>Fréquence cardiaque <input [(ngModel)]="consultationForm.heartRate" name="heartRate" placeholder="72 bpm" /></label>
+        <label>Température <input [(ngModel)]="consultationForm.temperature" name="temperature" placeholder="37.0 °C" /></label>
+        <label>Poids <input [(ngModel)]="consultationForm.weight" name="weight" placeholder="70 kg" /></label>
+      </div>
+      <label>
+        Prescriptions libres
         <textarea [(ngModel)]="consultationForm.prescriptionsText"
           name="prescriptions" rows="4"
           placeholder="Une prescription par ligne"></textarea>
       </label>
+      <div class="form-panel" style="padding: 0.75rem; gap: 0.75rem;">
+        <strong>Ordonnance structurée</strong>
+        <label>
+          Médicament
+          <input
+            [(ngModel)]="prescriptionDraft.medicationName"
+            name="prescriptionMedicationName"
+            list="medicationSuggestions"
+            (input)="searchMedications()"
+            (change)="applyMedicationSuggestion(prescriptionDraft.medicationName)"
+            placeholder="Rechercher un médicament" />
+          <datalist id="medicationSuggestions">
+            @for (suggestion of medicationSuggestions; track suggestion.name) {
+            <option [value]="suggestion.name">{{ suggestion.form }} · {{ suggestion.commonDosage }}</option>
+            }
+          </datalist>
+        </label>
+        <label>Dosage <input [(ngModel)]="prescriptionDraft.dosage" name="prescriptionDosage" placeholder="500 mg" /></label>
+        <label>Fréquence <input [(ngModel)]="prescriptionDraft.frequency" name="prescriptionFrequency" placeholder="1 comprimé matin et soir" /></label>
+        <label>Durée (jours) <input [(ngModel)]="prescriptionDraft.durationDays" name="prescriptionDurationDays" type="number" min="1" /></label>
+        <label>Instructions <input [(ngModel)]="prescriptionDraft.instructions" name="prescriptionInstructions" placeholder="Après repas, avec eau..." /></label>
+        <button class="btn secondary" type="button" (click)="addPrescriptionItem()">Ajouter à l'ordonnance</button>
+        <div class="table-list">
+          @for (item of prescriptionItems; track item.medicationName + $index) {
+          <div class="list-row">
+            <div>
+              <strong>{{ item.medicationName }}</strong>
+              <span>{{ item.dosage }} · {{ item.frequency }} · {{ item.durationDays }} jours</span>
+            </div>
+            <button type="button" (click)="removePrescriptionItem($index)">Retirer</button>
+          </div>
+          } @empty {
+          <p class="muted">Aucune ligne d'ordonnance structurée pour le moment.</p>
+          }
+        </div>
+      </div>
 
       <button class="btn primary" type="submit" [disabled]="savingConsultation">
         @if (savingConsultation) {
@@ -75,8 +141,19 @@
     <div class="record-item">
       <div>
         <strong>{{ consultation.date }} · {{ consultation.doctor }}</strong>
-        <span>{{ consultation.motif }}</span>
+        <span>{{ consultation.templateName }} · {{ consultation.motif }}</span>
+        @if (consultation.diagnosis) {
+        <p><strong>Diagnostic :</strong> {{ consultation.diagnosis }}</p>
+        }
         <p>{{ consultation.notes }}</p>
+        @if (consultation.followUpPlan) {
+        <p><strong>Suivi :</strong> {{ consultation.followUpPlan }}</p>
+        }
+        @if (consultation.vitals['bloodPressure'] || consultation.vitals['heartRate'] || consultation.vitals['temperature'] || consultation.vitals['weight']) {
+        <p class="muted">
+          TA {{ consultation.vitals['bloodPressure'] || '-' }} · FC {{ consultation.vitals['heartRate'] || '-' }} · Temp {{ consultation.vitals['temperature'] || '-' }} · Poids {{ consultation.vitals['weight'] || '-' }}
+        </p>
+        }
       </div>
       <div class="prescription-list">
         @for (prescription of consultation.prescriptions; track prescription) {

@@ -2,6 +2,7 @@ package com.medisync.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -46,10 +48,15 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/clinic-profile").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/medical-acts").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/rooms").permitAll()
 
                 // Public doctor browsing — no token required
                 .requestMatchers(HttpMethod.GET, "/api/doctor").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/doctor/search").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/doctor/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/doctor/*/available-slots").permitAll()
 
                 .requestMatchers("/api/admin/**").hasAnyAuthority(
                     "ADMIN", "ROLE_ADMIN"

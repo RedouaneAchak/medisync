@@ -1,12 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { BackendClinicProfile, MedisyncApiService } from '../../services/medisync-api.service';
 
 @Component({
   selector: 'app-home',
   imports: [RouterLink],
   templateUrl: './home.html',
 })
-export class Home {
+export class Home implements OnInit {
+  clinicProfile: BackendClinicProfile | null = null;
   doctorSchedules = [
     { service: 'Medecine generale', days: 'Lundi - Vendredi', time: '08:30 - 18:00' },
     { service: 'Cardiologie', days: 'Lundi, Mercredi, Vendredi', time: '09:00 - 16:30' },
@@ -61,4 +63,38 @@ export class Home {
     { value: '140', label: 'chambres gerees dans la plateforme' },
     { value: '18', label: 'specialites medicales referencees' },
   ];
+
+  constructor(private readonly api: MedisyncApiService) {}
+
+  ngOnInit(): void {
+    this.api.getClinicProfile().subscribe({
+      next: (profile) => {
+        this.clinicProfile = profile;
+        this.applyClinicProfile(profile);
+      },
+    });
+  }
+
+  private applyClinicProfile(profile: BackendClinicProfile): void {
+    const specialties = profile.specialtiesOffered
+      ?.split(/[\n,;]+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    if (specialties?.length) {
+      this.doctorSchedules = specialties.slice(0, 4).map((specialty) => ({
+        service: specialty,
+        days: 'Selon disponibilite de la clinique',
+        time: profile.openingHours?.trim() || 'Horaires a confirmer',
+      }));
+    }
+
+    if (profile.openingHours?.trim()) {
+      this.visitHours = [
+        { unit: 'Accueil principal', time: profile.openingHours.trim() },
+        { unit: 'Secretariat medical', time: profile.openingHours.trim() },
+        { unit: 'Orientation patient', time: 'Sur rendez-vous et admission' },
+      ];
+    }
+  }
 }

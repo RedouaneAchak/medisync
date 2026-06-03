@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -16,4 +18,7 @@ public class AuthenticationResponse {
     private String lastname;
     private String email;
     private String role;
+    private Set<String> permissions;
+    private Boolean twoFactorEnabled;
+    private Boolean requiresTwoFactorSetup;
 }

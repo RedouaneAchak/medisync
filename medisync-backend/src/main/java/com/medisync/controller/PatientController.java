@@ -1,5 +1,6 @@
 package com.medisync.controller;
 
+import com.medisync.dto.PatientNotificationDto;
 import com.medisync.model.nosql.Consultation;
 import com.medisync.service.ConsultationService; // <-- IMPORT ADDED
 import com.medisync.model.sql.Appointment;
@@ -65,6 +66,11 @@ public class PatientController {
                 patientService.getMedicalHistory(id, currentUser.getUsername()));
     }
 
+    @GetMapping("/{id}/notifications")
+    public ResponseEntity<List<PatientNotificationDto>> getNotifications(@PathVariable Long id) {
+        return ResponseEntity.ok(patientService.getNotifications(id));
+    }
+
     // ── Ajout de document par le patient (UPLOAD PHYSIQUE) ────────────────────
 
     /**
@@ -124,7 +130,13 @@ public class PatientController {
             Consultation genericEntry = consultationService.create(
                     id,
                     doctorId == 0 ? null : doctorId,
+                    "DOCUMENT_PATIENT",
+                    "Document médical externe",
+                    null,
                     "Document ajouté par le patient",
+                    null,
+                    null,
+                    null,
                     null);
 
             Consultation saved = consultationService.addFile(genericEntry.getId(), fileMetadata);

@@ -10,10 +10,13 @@ export interface AuthUser {
   lastname: string;
   email: string;
   role: 'PATIENT' | 'DOCTOR' | 'SECRETARY' | 'ADMIN';
+  permissions?: string[];
 }
 
 export interface AuthResponse extends AuthUser {
   token: string;
+  twoFactorEnabled?: boolean;
+  requiresTwoFactorSetup?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -30,15 +33,29 @@ export class AuthService {
     return localStorage.getItem(this.tokenKey);
   }
 
-  login(email: string, password: string) {
-    return this.http.post<AuthResponse>(this.endpoint('/api/auth/login'), { email, password }).pipe(
+  login(identifier: string, password: string, otpCode?: string) {
+    return this.http.post<AuthResponse>(this.endpoint('/api/auth/login'), { identifier, password, otpCode }).pipe(
       tap((response) => this.storeSession(response)),
     );
   }
 
-  register(firstname: string, lastname: string, email: string, password: string, phone: string) {
+  register(
+    firstname: string,
+    lastname: string,
+    email: string,
+    password: string,
+    phone: string,
+    socialSecurityNumber?: string,
+  ) {
     return this.http
-      .post<AuthResponse>(this.endpoint('/api/auth/register'), { firstname, lastname, email, password, phone })
+      .post<AuthResponse>(this.endpoint('/api/auth/register'), {
+        firstname,
+        lastname,
+        email,
+        password,
+        phone,
+        socialSecurityNumber,
+      })
       .pipe(tap((response) => this.storeSession(response)));
   }
 
