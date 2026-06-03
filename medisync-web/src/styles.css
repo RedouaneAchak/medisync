@@ -1105,6 +1105,12 @@ textarea:focus {
   background: var(--line);
 }
 
+.google-button-host {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .google-button {
   display: inline-flex;
   align-items: center;

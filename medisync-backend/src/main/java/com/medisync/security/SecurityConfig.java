@@ -22,15 +22,18 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
     private final RateLimitFilter rateLimitFilter;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthFilter,
             AuthenticationProvider authenticationProvider,
-            RateLimitFilter rateLimitFilter
+            RateLimitFilter rateLimitFilter,
+            OAuth2SuccessHandler oAuth2SuccessHandler
     ) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.authenticationProvider = authenticationProvider;
         this.rateLimitFilter = rateLimitFilter;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
     }
 
     @Bean
@@ -46,6 +49,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
 
                 // Public doctor browsing — no token required
                 .requestMatchers(HttpMethod.GET, "/api/doctor").permitAll()
@@ -67,7 +71,10 @@ public class SecurityConfig {
                 )
                 .anyRequest().authenticated()
             )
-            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .oauth2Login(oauth2 -> oauth2
+                .successHandler(oAuth2SuccessHandler)
+            )
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(jwtAuthFilter, RateLimitFilter.class);
