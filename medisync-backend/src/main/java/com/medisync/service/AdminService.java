@@ -4,6 +4,7 @@ import com.medisync.model.nosql.AuditLog;
 import com.medisync.model.sql.*;
 import com.medisync.model.enums.Role;
 import com.medisync.repository.nosql.AuditLogRepository;
+import com.medisync.repository.nosql.ConsultationRepository;
 import com.medisync.repository.sql.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,7 @@ public class AdminService {
     private final AppointmentRepository appointmentRepository;
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
+    private final ConsultationRepository consultationRepository;
     private final AuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
 
